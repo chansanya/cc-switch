@@ -92,6 +92,7 @@ pub fn import_from_gemini(config: &mut MultiAppConfig) -> Result<usize, AppError
                         hermes: false,
                         mcode: false,
                     },
+                    runtime_targets: crate::app_config::McpRuntimeTargets::default(),
                     description: None,
                     homepage: None,
                     docs: None,

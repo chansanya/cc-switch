@@ -117,6 +117,7 @@ pub fn import_from_grokbuild(config: &mut MultiAppConfig) -> Result<usize, AppEr
                         grokbuild: true,
                         ..Default::default()
                     },
+                    runtime_targets: crate::app_config::McpRuntimeTargets::default(),
                     description: None,
                     homepage: None,
                     docs: None,

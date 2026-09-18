@@ -263,6 +263,7 @@ pub fn import_from_opencode(config: &mut MultiAppConfig) -> Result<usize, AppErr
                         hermes: false,
                         mcode: false,
                     },
+                    runtime_targets: crate::app_config::McpRuntimeTargets::default(),
                     description: None,
                     homepage: None,
                     docs: None,

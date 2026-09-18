@@ -103,6 +103,7 @@ pub fn import(state: &AppState) -> Result<usize, AppError> {
                     mcode: enabled,
                     ..Default::default()
                 },
+                runtime_targets: crate::app_config::McpRuntimeTargets::default(),
                 description: None,
                 homepage: None,
                 docs: None,

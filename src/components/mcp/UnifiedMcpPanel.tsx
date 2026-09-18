@@ -448,7 +448,11 @@ interface UnifiedMcpListItemProps {
   id: string;
   server: McpServer;
   onToggleApp: (serverId: string, app: AppId, enabled: boolean) => void;
-  onToggleTarget: (serverId: string, target: "windows" | "wsl", enabled: boolean) => void;
+  onToggleTarget: (
+    serverId: string,
+    target: "windows" | "wsl",
+    enabled: boolean,
+  ) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   disabled?: boolean;
@@ -519,7 +523,9 @@ const UnifiedMcpListItem: React.FC<UnifiedMcpListItemProps> = ({
 
       <div className="flex items-center">
         <TargetToggleGroup
-          runtimeTargets={server.runtimeTargets ?? { windows: true, wsl: false }}
+          runtimeTargets={
+            server.runtimeTargets ?? { windows: true, wsl: false }
+          }
           onToggle={(target, enabled) => onToggleTarget(id, target, enabled)}
           disabled={disabled}
         />

@@ -324,7 +324,9 @@ pub fn validate_command_in_path(cmd: &str) -> Result<bool, AppError> {
 }
 
 /// 读取指定路径下的 mcpServers 映射
-pub fn read_mcp_servers_map_from(path: &Path) -> Result<std::collections::HashMap<String, Value>, AppError> {
+pub fn read_mcp_servers_map_from(
+    path: &Path,
+) -> Result<std::collections::HashMap<String, Value>, AppError> {
     if !path.exists() {
         return Ok(std::collections::HashMap::new());
     }
@@ -358,7 +360,10 @@ pub fn set_mcp_servers_map_at(
     };
 
     if is_wsl_target {
-        log::info!("检测到 WSL 路径，使用 WSL 规则处理 MCP 命令: {}", path.display());
+        log::info!(
+            "检测到 WSL 路径，使用 WSL 规则处理 MCP 命令: {}",
+            path.display()
+        );
     }
     let mut out: Map<String, Value> = Map::new();
     for (id, spec) in servers.iter() {

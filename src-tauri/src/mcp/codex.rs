@@ -242,6 +242,7 @@ pub fn import_from_codex(config: &mut MultiAppConfig) -> Result<usize, AppError>
                             hermes: false,
                             mcode: false,
                         },
+                        runtime_targets: crate::app_config::McpRuntimeTargets::default(),
                         description: None,
                         homepage: None,
                         docs: None,
@@ -465,13 +466,15 @@ pub fn sync_single_server_to_codex_at(
     Ok(())
 }
 
-pub fn remove_server_from_codex_at(config_path: &std::path::Path, id: &str) -> Result<(), AppError> {
+pub fn remove_server_from_codex_at(
+    config_path: &std::path::Path,
+    id: &str,
+) -> Result<(), AppError> {
     if !config_path.exists() {
         return Ok(());
     }
 
-    let content =
-        std::fs::read_to_string(config_path).map_err(|e| AppError::io(config_path, e))?;
+    let content = std::fs::read_to_string(config_path).map_err(|e| AppError::io(config_path, e))?;
 
     let mut doc = match content.parse::<toml_edit::DocumentMut>() {
         Ok(doc) => doc,

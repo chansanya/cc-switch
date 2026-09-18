@@ -110,6 +110,7 @@ pub async fn upsert_mcp_server_in_config(
             name,
             server: spec,
             apps,
+            runtime_targets: crate::app_config::McpRuntimeTargets::default(),
             description: None,
             homepage: None,
             docs: None,

@@ -11,8 +11,8 @@
 //! - `opencode` - OpenCode MCP 同步和导入（含 local/remote 格式转换）
 //! - `hermes` - Hermes MCP 同步和导入
 
-mod claude;
-mod codex;
+pub(crate) mod claude;
+pub(crate) mod codex;
 mod gemini;
 mod grokbuild;
 mod hermes;

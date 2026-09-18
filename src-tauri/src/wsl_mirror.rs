@@ -4,16 +4,15 @@
 //! 镜像投递至指定的 WSL UNC 目录。
 //! 遵循容错降级原则：WSL 目录写入失败仅记录警告日志，绝不回滚或阻塞 Windows 主写入。
 
+use serde_json::{Map, Value};
 use std::fs;
 use std::path::Path;
-use serde_json::{Map, Value};
 
 use crate::app_config::AppType;
 use crate::error::AppError;
 
-pub const CONTROLLED_NODE_COMMANDS: &[&str] = &[
-    "npx", "npm", "yarn", "pnpm", "node", "bun", "deno"
-];
+pub const CONTROLLED_NODE_COMMANDS: &[&str] =
+    &["npx", "npm", "yarn", "pnpm", "node", "bun", "deno"];
 
 /// 检测路径是否为 WSL UNC 路径（如 \\wsl$\Ubuntu\... 或 \\wsl.localhost\Ubuntu\...）
 pub fn is_wsl_mirror_path(path: &Path) -> bool {
@@ -164,7 +163,10 @@ pub fn mirror_claude_live_if_enabled(settings: &Value) {
 
     let target_file = wsl_dir.join("settings.json");
     if let Err(e) = crate::config::write_json_file(&target_file, settings) {
-        log::warn!("写入 Claude WSL 镜像配置失败: {}: {e}", target_file.display());
+        log::warn!(
+            "写入 Claude WSL 镜像配置失败: {}: {e}",
+            target_file.display()
+        );
     } else {
         log::info!("已同步 Claude 配置到 WSL 镜像: {}", target_file.display());
     }
@@ -190,9 +192,15 @@ pub fn mirror_codex_live_if_enabled(
 
     if let Some(text) = config_text {
         if let Err(e) = crate::config::write_text_file(&config_path, text) {
-            log::warn!("写入 Codex WSL 镜像 config.toml 失败: {}: {e}", config_path.display());
+            log::warn!(
+                "写入 Codex WSL 镜像 config.toml 失败: {}: {e}",
+                config_path.display()
+            );
         } else {
-            log::info!("已同步 Codex config.toml 到 WSL 镜像: {}", config_path.display());
+            log::info!(
+                "已同步 Codex config.toml 到 WSL 镜像: {}",
+                config_path.display()
+            );
         }
 
         // 同步模型目录（若 config.toml 引用了 cc-switch-model-catalog.json）
@@ -203,7 +211,10 @@ pub fn mirror_codex_live_if_enabled(
                 let dst_catalog = wsl_dir.join(catalog_filename);
                 if let Ok(content) = fs::read(&src_catalog) {
                     if let Err(e) = crate::config::atomic_write(&dst_catalog, &content) {
-                        log::warn!("同步 Codex model catalog 到 WSL 镜像失败: {}: {e}", dst_catalog.display());
+                        log::warn!(
+                            "同步 Codex model catalog 到 WSL 镜像失败: {}: {e}",
+                            dst_catalog.display()
+                        );
                     }
                 }
             }
@@ -212,9 +223,15 @@ pub fn mirror_codex_live_if_enabled(
 
     if let Some(auth_val) = auth {
         if let Err(e) = crate::config::write_json_file(&auth_path, auth_val) {
-            log::warn!("写入 Codex WSL 镜像 auth.json 失败: {}: {e}", auth_path.display());
+            log::warn!(
+                "写入 Codex WSL 镜像 auth.json 失败: {}: {e}",
+                auth_path.display()
+            );
         } else {
-            log::info!("已同步 Codex auth.json 到 WSL 镜像: {}", auth_path.display());
+            log::info!(
+                "已同步 Codex auth.json 到 WSL 镜像: {}",
+                auth_path.display()
+            );
         }
     } else if remove_auth && auth_path.exists() {
         let _ = crate::config::delete_file(&auth_path);
@@ -241,15 +258,24 @@ pub fn mirror_prompt_if_enabled(app: &AppType, content: &str) {
 
     if let Some(parent) = target_file.parent() {
         if let Err(e) = ensure_wsl_mirror_dir(parent) {
-            log::warn!("创建 {app_name} WSL 提示词镜像目录失败: {}: {e}", parent.display());
+            log::warn!(
+                "创建 {app_name} WSL 提示词镜像目录失败: {}: {e}",
+                parent.display()
+            );
             return;
         }
     }
 
     if let Err(e) = crate::config::write_text_file(&target_file, content) {
-        log::warn!("同步 Prompt 到 {app_name} WSL 镜像失败: {}: {e}", target_file.display());
+        log::warn!(
+            "同步 Prompt 到 {app_name} WSL 镜像失败: {}: {e}",
+            target_file.display()
+        );
     } else {
-        log::info!("已同步 Prompt 到 {app_name} WSL 镜像: {}", target_file.display());
+        log::info!(
+            "已同步 Prompt 到 {app_name} WSL 镜像: {}",
+            target_file.display()
+        );
     }
 }
 
@@ -267,7 +293,10 @@ pub fn mirror_skill_if_enabled(app: &AppType, directory: &str, source_dir: &Path
 
     let skills_dir = wsl_dir.join("skills");
     if let Err(e) = ensure_wsl_mirror_dir(&skills_dir) {
-        log::warn!("创建 WSL skills 镜像目录失败: {}: {e}", skills_dir.display());
+        log::warn!(
+            "创建 WSL skills 镜像目录失败: {}: {e}",
+            skills_dir.display()
+        );
         return;
     }
 
@@ -312,10 +341,16 @@ mod tests {
 
     #[test]
     fn test_is_wsl_mirror_path() {
-        assert!(is_wsl_mirror_path(Path::new(r"\\wsl$\Ubuntu\home\user\.codex")));
-        assert!(is_wsl_mirror_path(Path::new(r"\\wsl.localhost\Ubuntu\home\user\.claude")));
+        assert!(is_wsl_mirror_path(Path::new(
+            r"\\wsl$\Ubuntu\home\user\.codex"
+        )));
+        assert!(is_wsl_mirror_path(Path::new(
+            r"\\wsl.localhost\Ubuntu\home\user\.claude"
+        )));
         assert!(is_wsl_mirror_path(Path::new(r"//wsl$/Ubuntu/home/user")));
-        assert!(is_wsl_mirror_path(Path::new(r"//wsl.localhost/Ubuntu/home/user")));
+        assert!(is_wsl_mirror_path(Path::new(
+            r"//wsl.localhost/Ubuntu/home/user"
+        )));
         assert!(!is_wsl_mirror_path(Path::new(r"C:\Users\user\.codex")));
         assert!(!is_wsl_mirror_path(Path::new(r"/home/user/.codex")));
     }
@@ -336,7 +371,11 @@ mod tests {
         assert_eq!(obj["command"], "npx");
         assert_eq!(
             obj["args"],
-            json!(["-y", "@modelcontextprotocol/server-filesystem", "/home/dev/file"])
+            json!([
+                "-y",
+                "@modelcontextprotocol/server-filesystem",
+                "/home/dev/file"
+            ])
         );
     }
 
@@ -372,6 +411,9 @@ mod tests {
         wrap_command_for_windows(&mut obj);
 
         assert_eq!(obj["command"], "cmd");
-        assert_eq!(obj["args"], json!(["/c", "npx", "-y", "@upstash/context7-mcp"]));
+        assert_eq!(
+            obj["args"],
+            json!(["/c", "npx", "-y", "@upstash/context7-mcp"])
+        );
     }
 }

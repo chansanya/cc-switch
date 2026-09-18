@@ -130,7 +130,11 @@ impl McpService {
         match target {
             "windows" => updated_targets.windows = enabled,
             "wsl" => updated_targets.wsl = enabled,
-            _ => return Err(AppError::InvalidInput(format!("无效的运行环境目标: {target}"))),
+            _ => {
+                return Err(AppError::InvalidInput(format!(
+                    "无效的运行环境目标: {target}"
+                )))
+            }
         }
 
         if !updated_targets.windows && !updated_targets.wsl {
@@ -173,7 +177,11 @@ impl McpService {
             AppType::Claude => {
                 // Windows 目标
                 if server.runtime_targets.windows {
-                    mcp::sync_single_server_to_claude(&Default::default(), &server.id, &server.server)?;
+                    mcp::sync_single_server_to_claude(
+                        &Default::default(),
+                        &server.id,
+                        &server.server,
+                    )?;
                 } else {
                     let _ = mcp::remove_server_from_claude(&server.id);
                 }
@@ -191,7 +199,8 @@ impl McpService {
                             log::warn!("同步 MCP '{}' 到 Claude WSL 镜像失败: {e}", server.id);
                         }
                     } else {
-                        let _ = crate::claude_mcp::remove_server_from_claude_at(&wsl_path, &server.id);
+                        let _ =
+                            crate::claude_mcp::remove_server_from_claude_at(&wsl_path, &server.id);
                     }
                 }
             }
@@ -201,7 +210,11 @@ impl McpService {
             AppType::Codex => {
                 // Windows 目标
                 if server.runtime_targets.windows {
-                    mcp::sync_single_server_to_codex(&Default::default(), &server.id, &server.server)?;
+                    mcp::sync_single_server_to_codex(
+                        &Default::default(),
+                        &server.id,
+                        &server.server,
+                    )?;
                 } else {
                     let _ = mcp::remove_server_from_codex(&server.id);
                 }
@@ -219,13 +232,18 @@ impl McpService {
                             log::warn!("同步 MCP '{}' 到 Codex WSL 镜像失败: {e}", server.id);
                         }
                     } else {
-                        let _ = mcp::codex::remove_server_from_codex_at(&wsl_config_path, &server.id);
+                        let _ =
+                            mcp::codex::remove_server_from_codex_at(&wsl_config_path, &server.id);
                     }
                 }
             }
             AppType::Gemini => {
                 if server.runtime_targets.windows {
-                    mcp::sync_single_server_to_gemini(&Default::default(), &server.id, &server.server)?;
+                    mcp::sync_single_server_to_gemini(
+                        &Default::default(),
+                        &server.id,
+                        &server.server,
+                    )?;
                 } else {
                     let _ = mcp::remove_server_from_gemini(&server.id);
                 }
@@ -257,7 +275,11 @@ impl McpService {
             }
             AppType::Hermes => {
                 if server.runtime_targets.windows {
-                    mcp::sync_single_server_to_hermes(&Default::default(), &server.id, &server.server)?;
+                    mcp::sync_single_server_to_hermes(
+                        &Default::default(),
+                        &server.id,
+                        &server.server,
+                    )?;
                 } else {
                     let _ = mcp::remove_server_from_hermes(&server.id);
                 }

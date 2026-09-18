@@ -1001,6 +1001,7 @@ impl MultiAppConfig {
                             name,
                             server,
                             apps,
+                            runtime_targets: McpRuntimeTargets::default(),
                             description,
                             homepage,
                             docs,

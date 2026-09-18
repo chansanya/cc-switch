@@ -90,9 +90,11 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
     };
   });
 
-  const [runtimeTargets, setRuntimeTargets] = useState<McpRuntimeTargets>(() => {
-    return initialData?.runtimeTargets ?? { windows: true, wsl: false };
-  });
+  const [runtimeTargets, setRuntimeTargets] = useState<McpRuntimeTargets>(
+    () => {
+      return initialData?.runtimeTargets ?? { windows: true, wsl: false };
+    },
+  );
 
   const isEditing = !!editingId;
 
@@ -547,7 +549,10 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
                         toast.error(t("mcp.form.noTargetsWarning"));
                         return;
                       }
-                      setRuntimeTargets({ ...runtimeTargets, windows: checked });
+                      setRuntimeTargets({
+                        ...runtimeTargets,
+                        windows: checked,
+                      });
                     }}
                   />
                   <label
