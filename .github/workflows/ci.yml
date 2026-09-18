@@ -105,10 +105,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: changes
     if: github.event_name != 'pull_request' || needs.changes.outputs.backend == 'true'
+    # 当前开发阶段仅验证 Windows；WSL2 契约由下方专用 Windows job 覆盖。
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-latest, macos-latest]
+        os: [windows-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
