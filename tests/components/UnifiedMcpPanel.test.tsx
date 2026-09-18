@@ -33,6 +33,11 @@ vi.mock("@/hooks/useMcp", () => ({
     isPending: mocks.togglePending,
     variables: mocks.toggleVariables,
   }),
+  useToggleMcpTarget: () => ({
+    mutateAsync: mocks.toggle,
+    isPending: false,
+    variables: undefined,
+  }),
   useBulkToggleMcpApp: () => ({
     mutateAsync: mocks.bulkToggle,
     isPending: mocks.bulkPending,
