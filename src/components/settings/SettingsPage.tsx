@@ -351,6 +351,15 @@ export function SettingsPage({
                             onResetAppConfig={resetAppConfigDir}
                             claudeDir={settings.claudeConfigDir}
                             codexDir={settings.codexConfigDir}
+                            claudeWslMirrorDir={settings.claudeWslMirrorDir}
+                            codexWslMirrorDir={settings.codexWslMirrorDir}
+                            onWslMirrorDirChange={(app, val) =>
+                              updateSettings({
+                                [app === "claude"
+                                  ? "claudeWslMirrorDir"
+                                  : "codexWslMirrorDir"]: val,
+                              })
+                            }
                             geminiDir={settings.geminiConfigDir}
                             grokDir={settings.grokConfigDir}
                             opencodeDir={settings.opencodeConfigDir}

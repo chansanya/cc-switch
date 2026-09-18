@@ -2,14 +2,14 @@
 //!
 //! 提供 MCP 服务器的 CRUD 操作。
 
-use crate::app_config::{AppType, McpApps, McpServer};
+use crate::app_config::{AppType, McpApps, McpRuntimeTargets, McpServer};
 use crate::database::{lock_conn, Database};
 use crate::error::AppError;
 use indexmap::IndexMap;
 use rusqlite::{params, OptionalExtension, Row};
 
 const MCP_SERVER_SELECT: &str =
-    "SELECT id, name, server_config, description, homepage, docs, tags, enabled_claude, enabled_codex, enabled_gemini, enabled_grokbuild, enabled_opencode, enabled_hermes, enabled_mcode FROM mcp_servers";
+    "SELECT id, name, server_config, description, homepage, docs, tags, enabled_claude, enabled_codex, enabled_gemini, enabled_grokbuild, enabled_opencode, enabled_hermes, enabled_mcode, target_windows, target_wsl FROM mcp_servers";
 
 fn row_to_mcp_server(row: &Row<'_>) -> rusqlite::Result<(String, McpServer)> {
     let id: String = row.get(0)?;
@@ -43,6 +43,10 @@ fn row_to_mcp_server(row: &Row<'_>) -> rusqlite::Result<(String, McpServer)> {
                 opencode: enabled_opencode,
                 hermes: enabled_hermes,
                 mcode: row.get(13)?,
+            },
+            runtime_targets: McpRuntimeTargets {
+                windows: row.get(14).unwrap_or(true),
+                wsl: row.get(15).unwrap_or(false),
             },
             description,
             homepage,
@@ -122,8 +126,9 @@ impl Database {
         conn.execute(
             "INSERT OR REPLACE INTO mcp_servers (
                 id, name, server_config, description, homepage, docs, tags,
-                enabled_claude, enabled_codex, enabled_gemini, enabled_grokbuild, enabled_opencode, enabled_hermes, enabled_mcode
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                enabled_claude, enabled_codex, enabled_gemini, enabled_grokbuild, enabled_opencode, enabled_hermes, enabled_mcode,
+                target_windows, target_wsl
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
             params![
                 server.id,
                 server.name,
@@ -142,13 +147,45 @@ impl Database {
                 server.apps.opencode,
                 server.apps.hermes,
                 server.apps.mcode,
+                server.runtime_targets.windows,
+                server.runtime_targets.wsl,
             ],
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
         Ok(())
     }
 
-    /// 删除 MCP 服务器
+    /// 更新 MCP 服务器的运行环境启用状态
+    pub fn update_mcp_server_target_enabled(
+        &self,
+        id: &str,
+        target: &str,
+        enabled: bool,
+    ) -> Result<Option<McpServer>, AppError> {
+        let conn = lock_conn!(self.conn);
+        let column = match target {
+            "windows" => "target_windows",
+            "wsl" => "target_wsl",
+            _ => return Err(AppError::InvalidInput(format!("Invalid target: {target}"))),
+        };
+
+        let sql = format!("UPDATE mcp_servers SET {column} = ?1 WHERE id = ?2");
+        let affected = conn
+            .execute(&sql, params![enabled, id])
+            .map_err(|e| AppError::Database(e.to_string()))?;
+        if affected == 0 {
+            return Ok(None);
+        }
+
+        conn.query_row(
+            &format!("{MCP_SERVER_SELECT} WHERE id = ?1"),
+            params![id],
+            |row| row_to_mcp_server(row).map(|(_, server)| server),
+        )
+        .optional()
+        .map_err(|e| AppError::Database(e.to_string()))
+    }
+
     pub fn delete_mcp_server(&self, id: &str) -> Result<(), AppError> {
         let conn = lock_conn!(self.conn);
         conn.execute("DELETE FROM mcp_servers WHERE id = ?1", params![id])
@@ -173,6 +210,7 @@ mod tests {
                 gemini: true,
                 ..McpApps::default()
             },
+            runtime_targets: McpRuntimeTargets::default(),
             description: Some("description".to_string()),
             homepage: Some("https://example.com".to_string()),
             docs: None,

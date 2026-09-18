@@ -901,7 +901,11 @@
       "defaultCostMultiplierRequired": "デフォルト倍率は必須です",
       "defaultCostMultiplierInvalid": "デフォルト倍率の形式が正しくありません"
     },
-    "saveFailedGeneric": "保存に失敗しました。もう一度お試しください"
+    "saveFailedGeneric": "保存に失敗しました。もう一度お試しください",
+    "claudeWslMirrorDir": "Claude WSL ミラーディレクトリ",
+    "codexWslMirrorDir": "Codex WSL ミラーディレクトリ",
+    "wslMirrorPlaceholderClaude": "例: \\\\wsl.localhost\\Ubuntu\\home\\user\\.claude",
+    "wslMirrorPlaceholderCodex": "例: \\\\wsl.localhost\\Ubuntu\\home\\user\\.codex"
   },
   "apps": {
     "claude": "Claude",
@@ -2075,7 +2079,11 @@
       "useWizard": "設定ウィザード",
       "syncOtherSide": "{{target}} にも反映",
       "syncOtherSideHint": "{{target}} に同じ設定を書き込みます。既存の同一 ID は上書きされます。",
-      "willOverwriteWarning": "{{target}} の既存設定を上書きします"
+      "willOverwriteWarning": "{{target}} の既存設定を上書きします",
+      "runtimeTargets": "実行環境",
+      "targetWindows": "Windows",
+      "targetWsl": "WSL",
+      "noTargetsWarning": "少なくとも1つの実行環境を選択してください"
     },
     "wizard": {
       "title": "MCP 設定ウィザード",

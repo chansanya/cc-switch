@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import JsonEditor from "@/components/JsonEditor";
 import type { AppId } from "@/lib/api/types";
-import { McpServer, McpServerSpec } from "@/types";
+import { McpRuntimeTargets, McpServer, McpServerSpec } from "@/types";
 import { mcpPresets, getMcpPresetWithDescription } from "@/config/mcpPresets";
 import McpWizardModal from "./McpWizardModal";
 import {
@@ -88,6 +88,10 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
       hermes: defaultEnabledApps.includes("hermes"),
       mcode: defaultEnabledApps.includes("mcode"),
     };
+  });
+
+  const [runtimeTargets, setRuntimeTargets] = useState<McpRuntimeTargets>(() => {
+    return initialData?.runtimeTargets ?? { windows: true, wsl: false };
   });
 
   const isEditing = !!editingId;
@@ -375,6 +379,7 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
         name: finalName,
         server: serverSpec,
         apps: enabledApps,
+        runtimeTargets,
       };
 
       const descriptionTrimmed = formDescription.trim();
@@ -525,6 +530,54 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
               />
+            </div>
+
+            {/* 运行环境 */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                {t("mcp.form.runtimeTargets")}
+              </label>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="target-windows"
+                    checked={runtimeTargets.windows}
+                    onCheckedChange={(checked: boolean) => {
+                      if (!checked && !runtimeTargets.wsl) {
+                        toast.error(t("mcp.form.noTargetsWarning"));
+                        return;
+                      }
+                      setRuntimeTargets({ ...runtimeTargets, windows: checked });
+                    }}
+                  />
+                  <label
+                    htmlFor="target-windows"
+                    className="text-sm text-foreground cursor-pointer select-none"
+                  >
+                    {t("mcp.form.targetWindows")}
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="target-wsl"
+                    checked={runtimeTargets.wsl}
+                    onCheckedChange={(checked: boolean) => {
+                      if (!checked && !runtimeTargets.windows) {
+                        toast.error(t("mcp.form.noTargetsWarning"));
+                        return;
+                      }
+                      setRuntimeTargets({ ...runtimeTargets, wsl: checked });
+                    }}
+                  />
+                  <label
+                    htmlFor="target-wsl"
+                    className="text-sm text-foreground cursor-pointer select-none"
+                  >
+                    {t("mcp.form.targetWsl")}
+                  </label>
+                </div>
+              </div>
             </div>
 
             {/* 启用到哪些应用 */}

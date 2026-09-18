@@ -68,7 +68,9 @@ impl Database {
             enabled_gemini BOOLEAN NOT NULL DEFAULT 0, enabled_grokbuild BOOLEAN NOT NULL DEFAULT 0,
             enabled_opencode BOOLEAN NOT NULL DEFAULT 0,
             enabled_mcode BOOLEAN NOT NULL DEFAULT 0,
-            enabled_hermes BOOLEAN NOT NULL DEFAULT 0
+            enabled_hermes BOOLEAN NOT NULL DEFAULT 0,
+            target_windows BOOLEAN NOT NULL DEFAULT 1,
+            target_wsl BOOLEAN NOT NULL DEFAULT 0
         )",
             [],
         )
@@ -564,6 +566,23 @@ impl Database {
                         }
                         Self::set_user_version(conn, 19)?;
                     }
+                    19 => {
+                        if Self::table_exists(conn, "mcp_servers")? {
+                            Self::add_column_if_missing(
+                                conn,
+                                "mcp_servers",
+                                "target_windows",
+                                "BOOLEAN NOT NULL DEFAULT 1",
+                            )?;
+                            Self::add_column_if_missing(
+                                conn,
+                                "mcp_servers",
+                                "target_wsl",
+                                "BOOLEAN NOT NULL DEFAULT 0",
+                            )?;
+                        }
+                        Self::set_user_version(conn, 20)?;
+                    }
                     _ => {
                         return Err(AppError::Database(format!(
                             "未知的数据库版本 {version}，无法迁移到 {SCHEMA_VERSION}"
@@ -624,6 +643,18 @@ impl Database {
             conn,
             "mcp_servers",
             "enabled_gemini",
+            "BOOLEAN NOT NULL DEFAULT 0",
+        )?;
+        Self::add_column_if_missing(
+            conn,
+            "mcp_servers",
+            "target_windows",
+            "BOOLEAN NOT NULL DEFAULT 1",
+        )?;
+        Self::add_column_if_missing(
+            conn,
+            "mcp_servers",
+            "target_wsl",
             "BOOLEAN NOT NULL DEFAULT 0",
         )?;
 

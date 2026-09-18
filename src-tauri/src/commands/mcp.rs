@@ -194,6 +194,17 @@ pub async fn toggle_mcp_app(
     McpService::toggle_app(&state, &server_id, app_ty, enabled).map_err(|e| e.to_string())
 }
 
+/// 切换 MCP 服务器在指定运行环境（windows / wsl）的启用状态
+#[tauri::command]
+pub async fn toggle_mcp_target(
+    state: State<'_, AppState>,
+    server_id: String,
+    target: String,
+    enabled: bool,
+) -> Result<(), String> {
+    McpService::toggle_target(&state, &server_id, &target, enabled).map_err(|e| e.to_string())
+}
+
 /// 从所有应用导入 MCP 服务器（复用已有的导入逻辑）
 #[tauri::command]
 pub async fn import_mcp_from_apps(state: State<'_, AppState>) -> Result<usize, String> {

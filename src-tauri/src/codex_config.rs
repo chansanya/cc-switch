@@ -1056,6 +1056,8 @@ pub fn write_codex_live_atomic(
         return Err(e);
     }
 
+    crate::wsl_mirror::mirror_codex_live_if_enabled(Some(auth), false, config_text_opt);
+
     Ok(())
 }
 
@@ -1119,7 +1121,9 @@ pub fn write_codex_live_config_atomic(config_text_opt: Option<&str>) -> Result<(
         toml::from_str::<toml::Table>(&cfg_text).map_err(|e| AppError::toml(&config_path, e))?;
     }
 
-    write_text_file(&config_path, &cfg_text)
+    write_text_file(&config_path, &cfg_text)?;
+    crate::wsl_mirror::mirror_codex_live_if_enabled(None, false, config_text_opt);
+    Ok(())
 }
 
 pub fn extract_codex_auth_api_key(auth: &Value) -> Option<String> {
@@ -3996,12 +4000,12 @@ pub fn write_codex_live_for_provider(
 
 fn remove_codex_live_auth_after_third_party_switch() {
     let auth_path = get_codex_auth_path();
-    if !auth_path.exists() {
-        return;
+    if auth_path.exists() {
+        if let Err(e) = delete_file(&auth_path) {
+            log::warn!("Failed to remove auth.json after a third-party Codex switch: {e}");
+        }
     }
-    if let Err(e) = delete_file(&auth_path) {
-        log::warn!("Failed to remove auth.json after a third-party Codex switch: {e}");
-    }
+    crate::wsl_mirror::mirror_codex_live_if_enabled(None, true, None);
 }
 
 /// Build the live Codex config for provider switching.

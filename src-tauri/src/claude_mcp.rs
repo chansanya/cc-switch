@@ -323,14 +323,13 @@ pub fn validate_command_in_path(cmd: &str) -> Result<bool, AppError> {
     Ok(false)
 }
 
-/// 读取 ~/.claude.json 中的 mcpServers 映射
-pub fn read_mcp_servers_map() -> Result<std::collections::HashMap<String, Value>, AppError> {
-    let path = user_config_path();
+/// 读取指定路径下的 mcpServers 映射
+pub fn read_mcp_servers_map_from(path: &Path) -> Result<std::collections::HashMap<String, Value>, AppError> {
     if !path.exists() {
         return Ok(std::collections::HashMap::new());
     }
 
-    let root = read_json_value(&path)?;
+    let root = read_json_value(path)?;
     let servers = root
         .get("mcpServers")
         .and_then(|v| v.as_object())
@@ -340,23 +339,26 @@ pub fn read_mcp_servers_map() -> Result<std::collections::HashMap<String, Value>
     Ok(servers)
 }
 
-/// 将给定的启用 MCP 服务器映射写入到用户级 ~/.claude.json 的 mcpServers 字段
-/// 仅覆盖 mcpServers，其他字段保持不变
-pub fn set_mcp_servers_map(
-    servers: &std::collections::HashMap<String, Value>,
-) -> Result<(), AppError> {
+/// 读取 ~/.claude.json 中的 mcpServers 映射
+pub fn read_mcp_servers_map() -> Result<std::collections::HashMap<String, Value>, AppError> {
     let path = user_config_path();
+    read_mcp_servers_map_from(&path)
+}
+
+/// 将 MCP 服务器映射写入到指定路径的 mcpServers 字段
+pub fn set_mcp_servers_map_at(
+    path: &Path,
+    servers: &std::collections::HashMap<String, Value>,
+    is_wsl_target: bool,
+) -> Result<(), AppError> {
     let mut root = if path.exists() {
-        read_json_value(&path)?
+        read_json_value(path)?
     } else {
         serde_json::json!({})
     };
 
-    // 构建 mcpServers 对象：移除 UI 辅助字段（enabled/source），仅保留实际 MCP 规范
-    // 检测目标路径是否为 WSL，若是则跳过 cmd /c 包装
-    let is_wsl_target = is_wsl_path(&path);
     if is_wsl_target {
-        log::info!("检测到 WSL 路径，跳过 cmd /c 包装: {}", path.display());
+        log::info!("检测到 WSL 路径，使用 WSL 规则处理 MCP 命令: {}", path.display());
     }
     let mut out: Map<String, Value> = Map::new();
     for (id, spec) in servers.iter() {
@@ -383,9 +385,11 @@ pub fn set_mcp_servers_map(
         obj.remove("tags");
         obj.remove("homepage");
         obj.remove("docs");
+        obj.remove("runtimeTargets");
 
-        // Windows 平台自动包装 npx/npm 等命令为 cmd /c 格式（WSL 路径除外）
-        if !is_wsl_target {
+        if is_wsl_target {
+            crate::wsl_mirror::unwrap_command_for_wsl(&mut obj);
+        } else {
             wrap_command_for_windows(&mut obj);
         }
 
@@ -399,7 +403,43 @@ pub fn set_mcp_servers_map(
         obj.insert("mcpServers".into(), Value::Object(out));
     }
 
-    write_json_value(&path, &root)?;
+    write_json_value(path, &root)?;
+    Ok(())
+}
+
+/// 将给定的启用 MCP 服务器映射写入到用户级 ~/.claude.json 的 mcpServers 字段
+/// 仅覆盖 mcpServers，其他字段保持不变
+pub fn set_mcp_servers_map(
+    servers: &std::collections::HashMap<String, Value>,
+) -> Result<(), AppError> {
+    let path = user_config_path();
+    let is_wsl_target = is_wsl_path(&path) || crate::wsl_mirror::is_wsl_mirror_path(&path);
+    set_mcp_servers_map_at(&path, servers, is_wsl_target)
+}
+
+pub fn sync_single_server_to_claude_at(
+    path: &Path,
+    id: &str,
+    server_spec: &Value,
+    is_wsl: bool,
+) -> Result<(), AppError> {
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let mut current = read_mcp_servers_map_from(path).unwrap_or_default();
+    current.insert(id.to_string(), server_spec.clone());
+    set_mcp_servers_map_at(path, &current, is_wsl)
+}
+
+pub fn remove_server_from_claude_at(path: &Path, id: &str) -> Result<(), AppError> {
+    if !path.exists() {
+        return Ok(());
+    }
+    let mut current = read_mcp_servers_map_from(path)?;
+    if current.remove(id).is_some() {
+        let is_wsl = is_wsl_path(path) || crate::wsl_mirror::is_wsl_mirror_path(path);
+        set_mcp_servers_map_at(path, &current, is_wsl)?;
+    }
     Ok(())
 }
 

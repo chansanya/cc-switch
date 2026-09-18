@@ -201,6 +201,8 @@ export function useSettings(): UseSettingsResult {
           mergedSettings.openclawConfigDir,
         );
         const sanitizedPiDir = sanitizeDir(mergedSettings.piConfigDir);
+        const sanitizedClaudeWslMirrorDir = sanitizeDir(mergedSettings.claudeWslMirrorDir);
+        const sanitizedCodexWslMirrorDir = sanitizeDir(mergedSettings.codexWslMirrorDir);
         const {
           webdavSync: _ignoredWebdavSync,
           s3Sync: _ignoredS3Sync,
@@ -216,6 +218,8 @@ export function useSettings(): UseSettingsResult {
           opencodeConfigDir: sanitizedOpencodeDir,
           openclawConfigDir: sanitizedOpenclawDir,
           piConfigDir: sanitizedPiDir,
+          claudeWslMirrorDir: sanitizedClaudeWslMirrorDir,
+          codexWslMirrorDir: sanitizedCodexWslMirrorDir,
           language: mergedSettings.language,
         };
 
@@ -336,6 +340,8 @@ export function useSettings(): UseSettingsResult {
           mergedSettings.openclawConfigDir,
         );
         const sanitizedPiDir = sanitizeDir(mergedSettings.piConfigDir);
+        const sanitizedClaudeWslMirrorDir = sanitizeDir(mergedSettings.claudeWslMirrorDir);
+        const sanitizedCodexWslMirrorDir = sanitizeDir(mergedSettings.codexWslMirrorDir);
         const previousAppDir = initialAppConfigDir;
         const previousClaudeDir = sanitizeDir(data?.claudeConfigDir);
         const previousCodexDir = sanitizeDir(data?.codexConfigDir);
@@ -359,6 +365,8 @@ export function useSettings(): UseSettingsResult {
           opencodeConfigDir: sanitizedOpencodeDir,
           openclawConfigDir: sanitizedOpenclawDir,
           piConfigDir: sanitizedPiDir,
+          claudeWslMirrorDir: sanitizedClaudeWslMirrorDir,
+          codexWslMirrorDir: sanitizedCodexWslMirrorDir,
           language: mergedSettings.language,
         };
 

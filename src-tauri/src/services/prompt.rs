@@ -86,6 +86,7 @@ impl PromptService {
             // 启用提示词：写入内容到文件
             let target_path = prompt_file_path(&app)?;
             write_text_file(&target_path, &prompt.content)?;
+            crate::wsl_mirror::mirror_prompt_if_enabled(&app, &prompt.content);
         } else {
             // 禁用提示词：检查是否还有其他已启用的提示词
             let prompts = state.db.get_prompts(app.as_str())?;
@@ -97,6 +98,7 @@ impl PromptService {
                 if target_path.exists() {
                     write_text_file(&target_path, "")?;
                 }
+                crate::wsl_mirror::mirror_prompt_if_enabled(&app, "");
             }
         }
 
@@ -196,6 +198,7 @@ impl PromptService {
             validate_prompt_content(&app, &prompt.content)?;
             prompt.enabled = true;
             write_text_file(&target_path, &prompt.content)?; // 原子写入
+            crate::wsl_mirror::mirror_prompt_if_enabled(&app, &prompt.content);
             state.db.save_prompt(app.as_str(), prompt)?;
         } else {
             return Err(AppError::InvalidInput(format!("提示词 {id} 不存在")));
@@ -279,6 +282,7 @@ impl PromptService {
         let target_path = prompt_file_path(&app)?;
         if let Some(prompt) = prompts.values().find(|prompt| prompt.enabled) {
             validate_prompt_content(&app, &prompt.content)?;
+            crate::wsl_mirror::mirror_prompt_if_enabled(&app, &prompt.content);
         }
         if let Some(warning) = project_prompt_set_to_path(&prompts, &target_path)? {
             return Err(AppError::Message(warning));

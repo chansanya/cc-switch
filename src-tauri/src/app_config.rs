@@ -267,6 +267,29 @@ pub struct UnmanagedSkill {
     pub path: String,
 }
 
+fn default_true() -> bool {
+    true
+}
+
+/// MCP 运行环境目标（Windows / WSL）
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct McpRuntimeTargets {
+    #[serde(default = "default_true")]
+    pub windows: bool,
+    #[serde(default)]
+    pub wsl: bool,
+}
+
+impl Default for McpRuntimeTargets {
+    fn default() -> Self {
+        Self {
+            windows: true,
+            wsl: false,
+        }
+    }
+}
+
 /// MCP 服务器定义（v3.7.0 统一结构）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpServer {
@@ -274,6 +297,8 @@ pub struct McpServer {
     pub name: String,
     pub server: serde_json::Value,
     pub apps: McpApps,
+    #[serde(rename = "runtimeTargets", default)]
+    pub runtime_targets: McpRuntimeTargets,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -422,6 +422,10 @@ export interface Settings {
   hermesConfigDir?: string;
   // 覆盖 Pi agent 配置目录（可选）
   piConfigDir?: string;
+  // Claude WSL 镜像目录（可选）
+  claudeWslMirrorDir?: string;
+  // Codex WSL 镜像目录（可选）
+  codexWslMirrorDir?: string;
 
   // ===== 当前供应商 ID（设备级）=====
   // 当前 Claude 供应商 ID（优先于数据库 is_current）
@@ -517,12 +521,18 @@ export interface McpApps {
   hermes: boolean;
 }
 
+export interface McpRuntimeTargets {
+  windows: boolean;
+  wsl: boolean;
+}
+
 // MCP 服务器条目（v3.7.0 统一结构）
 export interface McpServer {
   id: string;
   name: string;
   server: McpServerSpec;
   apps: McpApps; // v3.7.0: 标记应用到哪些客户端
+  runtimeTargets?: McpRuntimeTargets;
   description?: string;
   tags?: string[];
   homepage?: string;

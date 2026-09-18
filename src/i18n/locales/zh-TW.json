@@ -902,7 +902,11 @@
       "defaultCostMultiplierRequired": "預設倍率不能為空",
       "defaultCostMultiplierInvalid": "預設倍率格式不正確"
     },
-    "saveFailedGeneric": "儲存失敗，請重試"
+    "saveFailedGeneric": "儲存失敗，請重試",
+    "claudeWslMirrorDir": "Claude WSL 鏡像目錄",
+    "codexWslMirrorDir": "Codex WSL 鏡像目錄",
+    "wslMirrorPlaceholderClaude": "例如 \\\\wsl.localhost\\Ubuntu\\home\\user\\.claude",
+    "wslMirrorPlaceholderCodex": "例如 \\\\wsl.localhost\\Ubuntu\\home\\user\\.codex"
   },
   "apps": {
     "claude": "Claude",
@@ -2076,7 +2080,11 @@
       "useWizard": "設定精靈",
       "syncOtherSide": "同步至 {{target}}",
       "syncOtherSideHint": "勾選後會把目前設定同時寫入 {{target}}，若存在同名設定將被覆寫",
-      "willOverwriteWarning": "將覆寫 {{target}} 中的同名設定"
+      "willOverwriteWarning": "將覆寫 {{target}} 中的同名設定",
+      "runtimeTargets": "運行環境",
+      "targetWindows": "Windows",
+      "targetWsl": "WSL",
+      "noTargetsWarning": "至少保留一個運行環境"
     },
     "wizard": {
       "title": "MCP 設定精靈",

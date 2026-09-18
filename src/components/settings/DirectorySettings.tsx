@@ -22,6 +22,9 @@ interface DirectorySettingsProps {
   openclawDir?: string;
   hermesDir?: string;
   piDir?: string;
+  claudeWslMirrorDir?: string;
+  codexWslMirrorDir?: string;
+  onWslMirrorDirChange?: (app: "claude" | "codex", value?: string) => void;
   onDirectoryChange: (app: DirectoryAppId, value?: string) => void;
   onBrowseDirectory: (app: DirectoryAppId) => Promise<void>;
   onResetDirectory: (app: DirectoryAppId) => Promise<void>;
@@ -41,6 +44,9 @@ export function DirectorySettings({
   openclawDir,
   hermesDir,
   piDir,
+  claudeWslMirrorDir,
+  codexWslMirrorDir,
+  onWslMirrorDirChange,
   onDirectoryChange,
   onBrowseDirectory,
   onResetDirectory,
@@ -97,27 +103,53 @@ export function DirectorySettings({
           </p>
         </header>
 
-        <DirectoryInput
-          label={t("settings.claudeConfigDir")}
-          description={undefined}
-          value={claudeDir}
-          resolvedValue={resolvedDirs.claude}
-          placeholder={t("settings.browsePlaceholderClaude")}
-          onChange={(val) => onDirectoryChange("claude", val)}
-          onBrowse={() => onBrowseDirectory("claude")}
-          onReset={() => onResetDirectory("claude")}
-        />
+        <div className="space-y-2">
+          <DirectoryInput
+            label={t("settings.claudeConfigDir")}
+            description={undefined}
+            value={claudeDir}
+            resolvedValue={resolvedDirs.claude}
+            placeholder={t("settings.browsePlaceholderClaude")}
+            onChange={(val) => onDirectoryChange("claude", val)}
+            onBrowse={() => onBrowseDirectory("claude")}
+            onReset={() => onResetDirectory("claude")}
+          />
+          <div className="pl-3 border-l-2 border-border/40 space-y-1.5">
+            <span className="text-xs text-muted-foreground">
+              {t("settings.claudeWslMirrorDir")}
+            </span>
+            <Input
+              value={claudeWslMirrorDir ?? ""}
+              placeholder={t("settings.wslMirrorPlaceholderClaude")}
+              className="text-xs"
+              onChange={(e) => onWslMirrorDirChange?.("claude", e.target.value)}
+            />
+          </div>
+        </div>
 
-        <DirectoryInput
-          label={t("settings.codexConfigDir")}
-          description={undefined}
-          value={codexDir}
-          resolvedValue={resolvedDirs.codex}
-          placeholder={t("settings.browsePlaceholderCodex")}
-          onChange={(val) => onDirectoryChange("codex", val)}
-          onBrowse={() => onBrowseDirectory("codex")}
-          onReset={() => onResetDirectory("codex")}
-        />
+        <div className="space-y-2">
+          <DirectoryInput
+            label={t("settings.codexConfigDir")}
+            description={undefined}
+            value={codexDir}
+            resolvedValue={resolvedDirs.codex}
+            placeholder={t("settings.browsePlaceholderCodex")}
+            onChange={(val) => onDirectoryChange("codex", val)}
+            onBrowse={() => onBrowseDirectory("codex")}
+            onReset={() => onResetDirectory("codex")}
+          />
+          <div className="pl-3 border-l-2 border-border/40 space-y-1.5">
+            <span className="text-xs text-muted-foreground">
+              {t("settings.codexWslMirrorDir")}
+            </span>
+            <Input
+              value={codexWslMirrorDir ?? ""}
+              placeholder={t("settings.wslMirrorPlaceholderCodex")}
+              className="text-xs"
+              onChange={(e) => onWslMirrorDirChange?.("codex", e.target.value)}
+            />
+          </div>
+        </div>
 
         <DirectoryInput
           label={t("settings.geminiConfigDir")}

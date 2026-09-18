@@ -172,13 +172,18 @@ fn derive_mcp_path_from_override(dir: &Path) -> PathBuf {
     dir.join(".claude.json")
 }
 
+/// 根据配置目录获取对应的 Claude MCP 配置文件路径
+pub fn get_claude_mcp_path_for_dir(dir: &Path) -> PathBuf {
+    if let Some(path) = default_mcp_path_for_config_dir(dir) {
+        return path;
+    }
+    derive_mcp_path_from_override(dir)
+}
+
 /// 获取 Claude MCP 配置文件路径
 pub fn get_claude_mcp_path() -> PathBuf {
     if let Some(custom_dir) = crate::settings::get_claude_override_dir() {
-        if let Some(path) = default_mcp_path_for_config_dir(&custom_dir) {
-            return path;
-        }
-        return derive_mcp_path_from_override(&custom_dir);
+        return get_claude_mcp_path_for_dir(&custom_dir);
     }
     get_default_claude_mcp_path()
 }

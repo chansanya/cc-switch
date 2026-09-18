@@ -112,6 +112,41 @@ impl McpService {
         Ok(())
     }
 
+    /// 切换 MCP 服务器在指定运行环境（windows / wsl）的启用状态
+    pub fn toggle_target(
+        state: &AppState,
+        server_id: &str,
+        target: &str,
+        enabled: bool,
+    ) -> Result<(), AppError> {
+        let current_server = state
+            .db
+            .get_all_mcp_servers()?
+            .get(server_id)
+            .cloned()
+            .ok_or_else(|| AppError::InvalidInput(format!("MCP 服务器 '{server_id}' 不存在")))?;
+
+        let mut updated_targets = current_server.runtime_targets.clone();
+        match target {
+            "windows" => updated_targets.windows = enabled,
+            "wsl" => updated_targets.wsl = enabled,
+            _ => return Err(AppError::InvalidInput(format!("无效的运行环境目标: {target}"))),
+        }
+
+        if !updated_targets.windows && !updated_targets.wsl {
+            return Err(AppError::InvalidInput("至少保留一个运行环境".to_string()));
+        }
+
+        if let Some(server) = state
+            .db
+            .update_mcp_server_target_enabled(server_id, target, enabled)?
+        {
+            Self::sync_server_to_apps(state, &server)?;
+        }
+
+        Ok(())
+    }
+
     /// 将 MCP 服务器同步到所有启用的应用
     fn sync_server_to_apps(_state: &AppState, server: &McpServer) -> Result<(), AppError> {
         for app in server.apps.enabled_apps() {
@@ -136,41 +171,104 @@ impl McpService {
     fn sync_server_to_app_no_config(server: &McpServer, app: &AppType) -> Result<(), AppError> {
         match app {
             AppType::Claude => {
-                mcp::sync_single_server_to_claude(&Default::default(), &server.id, &server.server)?;
+                // Windows 目标
+                if server.runtime_targets.windows {
+                    mcp::sync_single_server_to_claude(&Default::default(), &server.id, &server.server)?;
+                } else {
+                    let _ = mcp::remove_server_from_claude(&server.id);
+                }
+
+                // WSL 目标（若已配置镜像目录）
+                if let Some(wsl_dir) = crate::settings::get_claude_wsl_mirror_dir() {
+                    let wsl_path = crate::config::get_claude_mcp_path_for_dir(&wsl_dir);
+                    if server.runtime_targets.wsl {
+                        if let Err(e) = crate::claude_mcp::sync_single_server_to_claude_at(
+                            &wsl_path,
+                            &server.id,
+                            &server.server,
+                            true,
+                        ) {
+                            log::warn!("同步 MCP '{}' 到 Claude WSL 镜像失败: {e}", server.id);
+                        }
+                    } else {
+                        let _ = crate::claude_mcp::remove_server_from_claude_at(&wsl_path, &server.id);
+                    }
+                }
             }
             AppType::ClaudeDesktop => {
                 log::debug!("Claude Desktop 3P profiles do not use CC Switch MCP sync, skipping");
             }
             AppType::Codex => {
-                // Codex uses TOML format, must use the correct function
-                mcp::sync_single_server_to_codex(&Default::default(), &server.id, &server.server)?;
+                // Windows 目标
+                if server.runtime_targets.windows {
+                    mcp::sync_single_server_to_codex(&Default::default(), &server.id, &server.server)?;
+                } else {
+                    let _ = mcp::remove_server_from_codex(&server.id);
+                }
+
+                // WSL 目标（若已配置镜像目录）
+                if let Some(wsl_dir) = crate::settings::get_codex_wsl_mirror_dir() {
+                    let wsl_config_path = wsl_dir.join("config.toml");
+                    if server.runtime_targets.wsl {
+                        if let Err(e) = mcp::codex::sync_single_server_to_codex_at(
+                            &wsl_config_path,
+                            &server.id,
+                            &server.server,
+                            true,
+                        ) {
+                            log::warn!("同步 MCP '{}' 到 Codex WSL 镜像失败: {e}", server.id);
+                        }
+                    } else {
+                        let _ = mcp::codex::remove_server_from_codex_at(&wsl_config_path, &server.id);
+                    }
+                }
             }
             AppType::Gemini => {
-                mcp::sync_single_server_to_gemini(&Default::default(), &server.id, &server.server)?;
+                if server.runtime_targets.windows {
+                    mcp::sync_single_server_to_gemini(&Default::default(), &server.id, &server.server)?;
+                } else {
+                    let _ = mcp::remove_server_from_gemini(&server.id);
+                }
             }
             AppType::GrokBuild => {
-                mcp::sync_single_server_to_grokbuild(
-                    &Default::default(),
-                    &server.id,
-                    &server.server,
-                )?;
+                if server.runtime_targets.windows {
+                    mcp::sync_single_server_to_grokbuild(
+                        &Default::default(),
+                        &server.id,
+                        &server.server,
+                    )?;
+                } else {
+                    let _ = mcp::remove_server_from_grokbuild(&server.id);
+                }
             }
             AppType::OpenCode => {
-                mcp::sync_single_server_to_opencode(
-                    &Default::default(),
-                    &server.id,
-                    &server.server,
-                )?;
+                if server.runtime_targets.windows {
+                    mcp::sync_single_server_to_opencode(
+                        &Default::default(),
+                        &server.id,
+                        &server.server,
+                    )?;
+                } else {
+                    let _ = mcp::remove_server_from_opencode(&server.id);
+                }
             }
             AppType::OpenClaw => {
-                // OpenClaw MCP support is still in development (Issue #4834)
-                // Skip for now
                 log::debug!("OpenClaw MCP support is still in development, skipping sync");
             }
             AppType::Hermes => {
-                mcp::sync_single_server_to_hermes(&Default::default(), &server.id, &server.server)?;
+                if server.runtime_targets.windows {
+                    mcp::sync_single_server_to_hermes(&Default::default(), &server.id, &server.server)?;
+                } else {
+                    let _ = mcp::remove_server_from_hermes(&server.id);
+                }
             }
-            AppType::Mcode => mcp::mcode::sync(&server.id, Some(&server.server))?,
+            AppType::Mcode => {
+                if server.runtime_targets.windows {
+                    mcp::mcode::sync(&server.id, Some(&server.server))?;
+                } else {
+                    let _ = mcp::mcode::sync(&server.id, None);
+                }
+            }
             AppType::Pi => {}
         }
         Ok(())
@@ -194,18 +292,29 @@ impl McpService {
 
     fn remove_server_from_app(_state: &AppState, id: &str, app: &AppType) -> Result<(), AppError> {
         match app {
-            AppType::Claude => mcp::remove_server_from_claude(id)?,
+            AppType::Claude => {
+                mcp::remove_server_from_claude(id)?;
+                if let Some(wsl_dir) = crate::settings::get_claude_wsl_mirror_dir() {
+                    let wsl_path = crate::config::get_claude_mcp_path_for_dir(&wsl_dir);
+                    let _ = crate::claude_mcp::remove_server_from_claude_at(&wsl_path, id);
+                }
+            }
             AppType::ClaudeDesktop => {
                 log::debug!("Claude Desktop 3P profiles do not use CC Switch MCP sync, skipping");
             }
-            AppType::Codex => mcp::remove_server_from_codex(id)?,
+            AppType::Codex => {
+                mcp::remove_server_from_codex(id)?;
+                if let Some(wsl_dir) = crate::settings::get_codex_wsl_mirror_dir() {
+                    let wsl_config_path = wsl_dir.join("config.toml");
+                    let _ = mcp::codex::remove_server_from_codex_at(&wsl_config_path, id);
+                }
+            }
             AppType::Gemini => mcp::remove_server_from_gemini(id)?,
             AppType::GrokBuild => mcp::remove_server_from_grokbuild(id)?,
             AppType::OpenCode => {
                 mcp::remove_server_from_opencode(id)?;
             }
             AppType::OpenClaw => {
-                // OpenClaw MCP support is still in development
                 log::debug!("OpenClaw MCP support is still in development, skipping remove");
             }
             AppType::Hermes => {

@@ -417,23 +417,19 @@ fn remove_mcp_server_from_doc(doc: &mut toml_edit::DocumentMut, id: &str) {
     }
 }
 
-pub fn sync_single_server_to_codex(
-    _config: &MultiAppConfig,
+pub fn sync_single_server_to_codex_at(
+    config_path: &std::path::Path,
     id: &str,
     server_spec: &Value,
+    is_wsl: bool,
 ) -> Result<(), AppError> {
-    if !should_sync_codex_mcp() {
-        return Ok(());
+    if let Some(parent) = config_path.parent() {
+        let _ = std::fs::create_dir_all(parent);
     }
-
-    // 读取现有的 config.toml
-    let config_path = crate::codex_config::get_codex_config_path();
 
     let mut doc = if config_path.exists() {
         let content =
-            std::fs::read_to_string(&config_path).map_err(|e| AppError::io(&config_path, e))?;
-        // 解析失败必须报错而不是用空文档顶替：写回空文档会把用户
-        // config.toml 里的其它段落（model/model_providers/注释等）整体清空
+            std::fs::read_to_string(config_path).map_err(|e| AppError::io(config_path, e))?;
         content
             .parse::<toml_edit::DocumentMut>()
             .map_err(|e| AppError::McpValidation(format!("解析 config.toml 失败: {e}")))?
@@ -441,7 +437,6 @@ pub fn sync_single_server_to_codex(
         toml_edit::DocumentMut::new()
     };
 
-    // 清理可能存在的错误格式 [mcp.servers]
     if let Some(mcp_item) = doc.get_mut("mcp") {
         if let Some(tbl) = mcp_item.as_table_like_mut() {
             if tbl.contains_key("servers") {
@@ -451,33 +446,33 @@ pub fn sync_single_server_to_codex(
         }
     }
 
-    // 将 JSON 服务器规范转换为 TOML 表
-    let toml_table = json_server_to_toml_table(server_spec)?;
+    let mut spec = server_spec.clone();
+    if let Some(obj) = spec.as_object_mut() {
+        obj.remove("runtimeTargets");
+        if is_wsl {
+            crate::wsl_mirror::unwrap_command_for_wsl(obj);
+        } else {
+            crate::wsl_mirror::wrap_command_for_windows(obj);
+        }
+    }
+
+    let toml_table = json_server_to_toml_table(&spec)?;
     upsert_mcp_server_table(&mut doc, id, toml_table)?;
 
-    // 写回文件
     let new_text = doc.to_string();
-    crate::config::write_text_file(&config_path, &new_text)?;
+    crate::config::write_text_file(config_path, &new_text)?;
 
     Ok(())
 }
 
-/// 从 Codex live 配置中移除单个 MCP 服务器
-/// 从正确的 [mcp_servers] 表中删除，同时清理可能存在于错误位置 [mcp.servers] 的数据
-pub fn remove_server_from_codex(id: &str) -> Result<(), AppError> {
-    if !should_sync_codex_mcp() {
-        return Ok(());
-    }
-    let config_path = crate::codex_config::get_codex_config_path();
-
+pub fn remove_server_from_codex_at(config_path: &std::path::Path, id: &str) -> Result<(), AppError> {
     if !config_path.exists() {
-        return Ok(()); // 文件不存在，无需删除
+        return Ok(());
     }
 
     let content =
-        std::fs::read_to_string(&config_path).map_err(|e| AppError::io(&config_path, e))?;
+        std::fs::read_to_string(config_path).map_err(|e| AppError::io(config_path, e))?;
 
-    // 尝试解析现有配置，如果失败则直接返回（无法删除不存在的内容）
     let mut doc = match content.parse::<toml_edit::DocumentMut>() {
         Ok(doc) => doc,
         Err(e) => {
@@ -488,11 +483,32 @@ pub fn remove_server_from_codex(id: &str) -> Result<(), AppError> {
 
     remove_mcp_server_from_doc(&mut doc, id);
 
-    // 写回文件
     let new_text = doc.to_string();
-    crate::config::write_text_file(&config_path, &new_text)?;
+    crate::config::write_text_file(config_path, &new_text)?;
 
     Ok(())
+}
+
+pub fn sync_single_server_to_codex(
+    _config: &MultiAppConfig,
+    id: &str,
+    server_spec: &Value,
+) -> Result<(), AppError> {
+    if !should_sync_codex_mcp() {
+        return Ok(());
+    }
+    let config_path = crate::codex_config::get_codex_config_path();
+    sync_single_server_to_codex_at(&config_path, id, server_spec, false)
+}
+
+/// 从 Codex live 配置中移除单个 MCP 服务器
+/// 从正确的 [mcp_servers] 表中删除，同时清理可能存在于错误位置 [mcp.servers] 的数据
+pub fn remove_server_from_codex(id: &str) -> Result<(), AppError> {
+    if !should_sync_codex_mcp() {
+        return Ok(());
+    }
+    let config_path = crate::codex_config::get_codex_config_path();
+    remove_server_from_codex_at(&config_path, id)
 }
 
 // ============================================================================

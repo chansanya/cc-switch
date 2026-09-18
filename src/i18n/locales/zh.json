@@ -901,7 +901,11 @@
       "defaultCostMultiplierRequired": "默认倍率不能为空",
       "defaultCostMultiplierInvalid": "默认倍率格式不正确"
     },
-    "saveFailedGeneric": "保存失败，请重试"
+    "saveFailedGeneric": "保存失败，请重试",
+    "claudeWslMirrorDir": "Claude WSL 镜像目录",
+    "codexWslMirrorDir": "Codex WSL 镜像目录",
+    "wslMirrorPlaceholderClaude": "例如 \\\\wsl.localhost\\Ubuntu\\home\\user\\.claude",
+    "wslMirrorPlaceholderCodex": "例如 \\\\wsl.localhost\\Ubuntu\\home\\user\\.codex"
   },
   "apps": {
     "claude": "Claude",
@@ -2075,7 +2079,11 @@
       "useWizard": "配置向导",
       "syncOtherSide": "同步到 {{target}}",
       "syncOtherSideHint": "勾选后会把当前配置同时写入 {{target}}，若存在同名配置将被覆盖",
-      "willOverwriteWarning": "将覆盖 {{target}} 中的同名配置"
+      "willOverwriteWarning": "将覆盖 {{target}} 中的同名配置",
+      "runtimeTargets": "运行环境",
+      "targetWindows": "Windows",
+      "targetWsl": "WSL",
+      "noTargetsWarning": "至少保留一个运行环境"
     },
     "wizard": {
       "title": "MCP 配置向导",

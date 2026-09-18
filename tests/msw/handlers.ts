@@ -215,6 +215,7 @@ export const handlers = [
     },
   ),
 
+  http.post(`${TAURI_ENDPOINT}/toggle_mcp_target`, () => success(null)),
   http.post(`${TAURI_ENDPOINT}/restart_app`, () => success(true)),
 
   http.post(`${TAURI_ENDPOINT}/get_settings`, () => success(getSettings())),

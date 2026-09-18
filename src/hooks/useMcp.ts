@@ -72,6 +72,26 @@ export function useToggleMcpApp() {
 }
 
 /**
+ * 切换 MCP 服务器在特定环境的启用状态 (windows | wsl)
+ */
+export function useToggleMcpTarget() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      serverId,
+      target,
+      enabled,
+    }: {
+      serverId: string;
+      target: "windows" | "wsl";
+      enabled: boolean;
+    }) => mcpApi.toggleTarget(serverId, target, enabled),
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["mcp", "all"] }),
+  });
+}
+
+/**
  * 删除 MCP 服务器
  */
 export function useDeleteMcpServer() {

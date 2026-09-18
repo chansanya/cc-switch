@@ -2492,6 +2492,8 @@ impl SkillService {
             }
         }
 
+        crate::wsl_mirror::mirror_skill_if_enabled(app, &directory, &source);
+
         Ok(())
     }
 
@@ -2638,6 +2640,8 @@ impl SkillService {
             Self::remove_path(&skill_path)?;
             log::debug!("Skill {directory} 已从 {app:?} 删除");
         }
+
+        crate::wsl_mirror::remove_skill_mirror_if_enabled(app, &directory);
 
         Ok(())
     }

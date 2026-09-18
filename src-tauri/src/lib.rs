@@ -39,8 +39,9 @@ mod store;
 mod tray;
 mod usage_events;
 mod usage_script;
+pub mod wsl_mirror;
 
-pub use app_config::{AppType, InstalledSkill, McpApps, McpServer, MultiAppConfig, SkillApps};
+pub use app_config::{AppType, InstalledSkill, McpApps, McpRuntimeTargets, McpServer, MultiAppConfig, SkillApps};
 pub use codex_config::{
     extract_codex_experimental_bearer_token, get_codex_auth_path, get_codex_config_path,
     read_codex_live_settings, write_codex_live_atomic,
@@ -1455,6 +1456,7 @@ pub fn run() {
             commands::upsert_mcp_server,
             commands::delete_mcp_server,
             commands::toggle_mcp_app,
+            commands::toggle_mcp_target,
             commands::import_mcp_from_apps,
             // Prompt management
             commands::get_prompts,

@@ -8,10 +8,11 @@ import {
   useAllMcpServers,
   useBulkToggleMcpApp,
   useToggleMcpApp,
+  useToggleMcpTarget,
   useDeleteMcpServer,
   useImportMcpFromApps,
 } from "@/hooks/useMcp";
-import type { McpServer } from "@/types";
+import type { McpRuntimeTargets, McpServer } from "@/types";
 import type { AppId } from "@/lib/api/types";
 import McpFormModal from "./McpFormModal";
 import { ConfirmDialog } from "../ConfirmDialog";
@@ -79,12 +80,14 @@ const UnifiedMcpPanel = React.forwardRef<
 
   const { data: serversMap, isLoading } = useAllMcpServers();
   const toggleAppMutation = useToggleMcpApp();
+  const toggleTargetMutation = useToggleMcpTarget();
   const bulkToggleAppMutation = useBulkToggleMcpApp();
   const deleteServerMutation = useDeleteMcpServer();
   const importMutation = useImportMcpFromApps();
 
   const mutationPending =
     toggleAppMutation.isPending ||
+    toggleTargetMutation.isPending ||
     bulkToggleAppMutation.isPending ||
     deleteServerMutation.isPending ||
     importMutation.isPending;
@@ -157,6 +160,21 @@ const UnifiedMcpPanel = React.forwardRef<
     : toggleAppMutation.isPending
       ? (toggleAppMutation.variables?.app ?? null)
       : null;
+
+  const handleToggleTarget = async (
+    serverId: string,
+    target: "windows" | "wsl",
+    enabled: boolean,
+  ) => {
+    if (!beginWrite()) return;
+    try {
+      await toggleTargetMutation.mutateAsync({ serverId, target, enabled });
+    } catch (error) {
+      toast.error(t("common.error"), { description: String(error) });
+    } finally {
+      endWrite();
+    }
+  };
 
   const handleToggleApp = async (
     serverId: string,
@@ -325,6 +343,7 @@ const UnifiedMcpPanel = React.forwardRef<
                     id={id}
                     server={server}
                     onToggleApp={handleToggleApp}
+                    onToggleTarget={handleToggleTarget}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     disabled={interactionBlocked}
@@ -369,10 +388,67 @@ const UnifiedMcpPanel = React.forwardRef<
 
 UnifiedMcpPanel.displayName = "UnifiedMcpPanel";
 
+interface TargetToggleGroupProps {
+  runtimeTargets: McpRuntimeTargets;
+  onToggle: (target: "windows" | "wsl", enabled: boolean) => void;
+  disabled?: boolean;
+}
+
+const TargetToggleGroup: React.FC<TargetToggleGroupProps> = ({
+  runtimeTargets,
+  onToggle,
+  disabled,
+}) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-1 border-r border-border/40 pr-2 mr-1">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          if (runtimeTargets.windows && !runtimeTargets.wsl) {
+            toast.error(t("mcp.form.noTargetsWarning"));
+            return;
+          }
+          onToggle("windows", !runtimeTargets.windows);
+        }}
+        className={`px-1.5 py-0.5 text-[11px] font-medium rounded border transition-colors ${
+          runtimeTargets.windows
+            ? "bg-primary/10 border-primary/40 text-primary"
+            : "bg-muted/40 border-transparent text-muted-foreground/60 hover:text-foreground"
+        }`}
+        title={t("mcp.form.targetWindows")}
+      >
+        Win
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          if (runtimeTargets.wsl && !runtimeTargets.windows) {
+            toast.error(t("mcp.form.noTargetsWarning"));
+            return;
+          }
+          onToggle("wsl", !runtimeTargets.wsl);
+        }}
+        className={`px-1.5 py-0.5 text-[11px] font-medium rounded border transition-colors ${
+          runtimeTargets.wsl
+            ? "bg-primary/10 border-primary/40 text-primary"
+            : "bg-muted/40 border-transparent text-muted-foreground/60 hover:text-foreground"
+        }`}
+        title={t("mcp.form.targetWsl")}
+      >
+        WSL
+      </button>
+    </div>
+  );
+};
+
 interface UnifiedMcpListItemProps {
   id: string;
   server: McpServer;
   onToggleApp: (serverId: string, app: AppId, enabled: boolean) => void;
+  onToggleTarget: (serverId: string, target: "windows" | "wsl", enabled: boolean) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   disabled?: boolean;
@@ -383,6 +459,7 @@ const UnifiedMcpListItem: React.FC<UnifiedMcpListItemProps> = ({
   id,
   server,
   onToggleApp,
+  onToggleTarget,
   onEdit,
   onDelete,
   disabled,
@@ -440,12 +517,19 @@ const UnifiedMcpListItem: React.FC<UnifiedMcpListItemProps> = ({
         )}
       </div>
 
-      <AppToggleGroup
-        apps={server.apps}
-        onToggle={(app, enabled) => onToggleApp(id, app, enabled)}
-        appIds={MCP_APP_IDS}
-        disabled={disabled}
-      />
+      <div className="flex items-center">
+        <TargetToggleGroup
+          runtimeTargets={server.runtimeTargets ?? { windows: true, wsl: false }}
+          onToggle={(target, enabled) => onToggleTarget(id, target, enabled)}
+          disabled={disabled}
+        />
+        <AppToggleGroup
+          apps={server.apps}
+          onToggle={(app, enabled) => onToggleApp(id, app, enabled)}
+          appIds={MCP_APP_IDS}
+          disabled={disabled}
+        />
+      </div>
 
       <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button

@@ -121,6 +121,17 @@ export const mcpApi = {
   },
 
   /**
+   * 切换 MCP 服务器在指定运行环境（windows / wsl）的启用状态
+   */
+  async toggleTarget(
+    serverId: string,
+    target: "windows" | "wsl",
+    enabled: boolean,
+  ): Promise<void> {
+    return await invoke("toggle_mcp_target", { serverId, target, enabled });
+  },
+
+  /**
    * 从所有应用导入 MCP 服务器
    */
   async importFromApps(): Promise<number> {

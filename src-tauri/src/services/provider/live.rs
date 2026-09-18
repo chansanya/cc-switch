@@ -1289,6 +1289,7 @@ pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Re
             let path = get_claude_settings_path();
             let settings = sanitize_claude_settings_for_live(&provider.settings_config);
             write_json_file(&path, &settings)?;
+            crate::wsl_mirror::mirror_claude_live_if_enabled(&settings);
         }
         AppType::ClaudeDesktop => {
             return Err(AppError::localized(
