@@ -8,14 +8,7 @@ import {
   ProviderForm,
   type ProviderFormValues,
 } from "@/components/providers/forms/ProviderForm";
-import { AuthSettingsPanel } from "@/components/providers/AuthSettingsPanel";
-import {
-  openclawApi,
-  providersApi,
-  vscodeApi,
-  type AppId,
-  type ManagedAuthProvider,
-} from "@/lib/api";
+import { openclawApi, providersApi, vscodeApi, type AppId } from "@/lib/api";
 import { extractCodexExperimentalBearerToken } from "@/utils/providerConfigUtils";
 
 interface EditProviderDialogProps {
@@ -98,13 +91,6 @@ export function EditProviderDialog({
 }: EditProviderDialogProps) {
   const { t } = useTranslation();
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
-  const [authSettingsTarget, setAuthSettingsTarget] =
-    useState<ManagedAuthProvider | null>(null);
-
-  useEffect(() => {
-    setAuthSettingsTarget(null);
-  }, [appId, open, provider?.id]);
-
   const formReadyToken = useMemo(
     () => Symbol("provider-form-ready"),
     [appId, open, provider?.id],
@@ -138,17 +124,12 @@ export function EditProviderDialog({
   const [hasLoadedLive, setHasLoadedLive] = useState(false);
 
   const closeDialog = useCallback(() => {
-    setAuthSettingsTarget(null);
     onOpenChange(false);
   }, [onOpenChange]);
 
   const handlePanelClose = useCallback(() => {
-    if (authSettingsTarget) {
-      setAuthSettingsTarget(null);
-      return;
-    }
     closeDialog();
-  }, [authSettingsTarget, closeDialog]);
+  }, [closeDialog]);
 
   useEffect(() => {
     let cancelled = false;
@@ -358,16 +339,11 @@ export function EditProviderDialog({
         submitLabel={t("common.save")}
         onSubmit={handleSubmit}
         onCancel={closeDialog}
-        onManageAuthAccounts={setAuthSettingsTarget}
         onSubmittingChange={setIsFormSubmitting}
         onSubmitReadyChange={handleSubmitReadyChange}
         initialData={initialData}
         showButtons={false}
         isProxyTakeover={isProxyTakeover}
-      />
-      <AuthSettingsPanel
-        target={authSettingsTarget}
-        onClose={() => setAuthSettingsTarget(null)}
       />
     </FullScreenPanel>
   );

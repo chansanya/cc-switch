@@ -31,15 +31,15 @@ export const APP_IDS: AppId[] = [
 
 export const DEFAULT_VISIBLE_APPS: VisibleApps = {
   claude: true,
-  "claude-desktop": true,
+  "claude-desktop": false,
   codex: true,
-  gemini: true,
-  grokbuild: true,
-  opencode: true,
-  openclaw: true,
-  hermes: true,
+  gemini: false,
+  grokbuild: false,
+  opencode: false,
+  openclaw: false,
+  hermes: false,
   pi: true,
-  mcode: true,
+  mcode: false,
 };
 
 /** App IDs shown in Skills panels. */

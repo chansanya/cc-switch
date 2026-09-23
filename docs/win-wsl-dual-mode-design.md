@@ -53,7 +53,7 @@ CC Switch 在双模式场景下存在两项核心诉求：
           -------------------      --------------------------
           • 写入 config.toml       • 写入 config.toml
           • 写入 auth.json         • 写入 auth.json (有有效凭证时)
-          • 写入 model-catalog     • 不继承 Windows model-catalog
+          • 写入 model-catalog     • 按模型映射生成 model-catalog
           • MCP: 保持 cmd /c       • MCP: 移除 cmd /c (受控命令)
           • Prompts: AGENTS.md     • Prompts: AGENTS.md
           • Skills: Symlink/Copy   • Skills: 强制递归复制
@@ -70,7 +70,7 @@ CC Switch 在双模式场景下存在两项核心诉求：
 
 Codex Provider 的 `settingsConfig.wslConfig` 保存 WSL 专用 TOML。配置了 Codex WSL 镜像目录后，Provider 编辑页显示独立编辑器；留空时，系统从 Windows `config.toml` 只投影 `model`、`model_provider`、`model_providers`、`features` 和上下文/推理相关字段。
 
-`notify`、`model_catalog_json`、`desktop`、`windows`、`marketplaces`、`plugins` 与整个 `[mcp_servers]` 都不会写入 WSL。WSL MCP 仅由 `runtimeTargets.wsl` 重新投影。
+`notify`、`desktop`、`windows`、`marketplaces`、`plugins` 与整个 `[mcp_servers]` 都不会写入 WSL。`model_catalog_json` 会保留，并在存在模型映射时同步生成 WSL 侧 catalog 文件。WSL MCP 仅由 `runtimeTargets.wsl` 重新投影。
 
 ### 3.4 MCP 运行环境自适应
 统一 MCP 数据模型扩展：

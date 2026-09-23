@@ -12,7 +12,6 @@ import {
   ProviderForm,
   type ProviderFormValues,
 } from "@/components/providers/forms/ProviderForm";
-import { AuthSettingsPanel } from "@/components/providers/AuthSettingsPanel";
 import { UniversalProviderFormModal } from "@/components/universal/UniversalProviderFormModal";
 import { UniversalProviderPanel } from "@/components/universal";
 import { providerPresets } from "@/config/claudeProviderPresets";
@@ -24,7 +23,6 @@ import { extractGrokBuildBaseUrl } from "@/utils/grokBuildConfig";
 import { GROKBUILD_OFFICIAL_PROVIDER_ID } from "@/utils/providerCapabilities";
 import type { OpenClawSuggestedDefaults } from "@/config/openclawProviderPresets";
 import type { UniversalProviderPreset } from "@/config/universalProviderPresets";
-import type { ManagedAuthProvider } from "@/lib/api";
 
 interface AddProviderDialogProps {
   open: boolean;
@@ -63,25 +61,13 @@ export function AddProviderDialog({
   const [selectedUniversalPreset, setSelectedUniversalPreset] =
     useState<UniversalProviderPreset | null>(null);
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
-  const [authSettingsTarget, setAuthSettingsTarget] =
-    useState<ManagedAuthProvider | null>(null);
-
-  useEffect(() => {
-    setAuthSettingsTarget(null);
-  }, [appId, open]);
-
   const closeDialog = useCallback(() => {
-    setAuthSettingsTarget(null);
     onOpenChange(false);
   }, [onOpenChange]);
 
   const handlePanelClose = useCallback(() => {
-    if (authSettingsTarget) {
-      setAuthSettingsTarget(null);
-      return;
-    }
     closeDialog();
-  }, [authSettingsTarget, closeDialog]);
+  }, [closeDialog]);
   const formReadyToken = useMemo(
     () => Symbol("provider-form-ready"),
     [appId, open],
@@ -431,7 +417,6 @@ export function AddProviderDialog({
               submitLabel={t("common.add")}
               onSubmit={handleSubmit}
               onCancel={closeDialog}
-              onManageAuthAccounts={setAuthSettingsTarget}
               onSubmittingChange={setIsFormSubmitting}
               onSubmitReadyChange={handleSubmitReadyChange}
               showButtons={false}
@@ -449,7 +434,6 @@ export function AddProviderDialog({
           submitLabel={t("common.add")}
           onSubmit={handleSubmit}
           onCancel={closeDialog}
-          onManageAuthAccounts={setAuthSettingsTarget}
           onSubmittingChange={setIsFormSubmitting}
           onSubmitReadyChange={handleSubmitReadyChange}
           showButtons={false}
@@ -464,11 +448,6 @@ export function AddProviderDialog({
           initialPreset={selectedUniversalPreset}
         />
       )}
-
-      <AuthSettingsPanel
-        target={authSettingsTarget}
-        onClose={() => setAuthSettingsTarget(null)}
-      />
     </FullScreenPanel>
   );
 }

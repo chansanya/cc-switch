@@ -180,13 +180,14 @@ const WSL_CODEX_TOP_LEVEL_KEYS: &[&str] = &[
     "disable_response_storage",
     "model_context_window",
     "model_auto_compact_token_limit",
+    "model_catalog_json",
     "features",
     "model_providers",
 ];
 
 /// 将 Windows Codex 配置收敛为 WSL 可运行的最小配置。
 ///
-/// WSL 配置不继承桌面运行时、插件市场、Windows 沙箱、通知程序、模型目录或 MCP。
+/// WSL 配置不继承桌面运行时、插件市场、Windows 沙箱、通知程序或 MCP；模型目录由 Provider 数据生成。
 /// MCP 由统一 MCP 服务按 `runtimeTargets.wsl` 单独投影，避免 Windows 专属服务残留。
 pub fn sanitize_codex_config_for_wsl(config_text: &str) -> Result<String, AppError> {
     if config_text.trim().is_empty() {
@@ -214,14 +215,65 @@ pub fn sanitize_codex_config_for_wsl(config_text: &str) -> Result<String, AppErr
 /// 根据当前 Provider 的 WSL 覆写配置投影 Codex config.toml。
 /// 若未填写覆写配置，使用 Windows Provider 配置的安全子集。
 pub fn mirror_codex_provider_if_enabled(provider: &crate::provider::Provider) {
-    let config_text = provider
+    let source_key = if provider
         .settings_config
         .get("wslConfig")
         .and_then(Value::as_str)
-        .filter(|config| !config.trim().is_empty())
-        .or_else(|| provider.settings_config.get("config").and_then(Value::as_str));
+        .is_some_and(|config| !config.trim().is_empty())
+    {
+        "wslConfig"
+    } else {
+        "config"
+    };
+    let config_text = provider
+        .settings_config
+        .get(source_key)
+        .and_then(Value::as_str);
 
     mirror_codex_live_if_enabled(None, false, config_text);
+}
+
+fn mirror_codex_model_catalog(wsl_dir: &Path, config: &str) {
+    let catalog_path = wsl_dir.join(crate::codex_config::CC_SWITCH_CODEX_MODEL_CATALOG_FILENAME);
+    let references_catalog = config
+        .parse::<DocumentMut>()
+        .ok()
+        .and_then(|doc| doc.get("model_catalog_json").and_then(|item| item.as_str()))
+        .map(|path| {
+            Path::new(path).file_name().and_then(|name| name.to_str())
+                == Some(crate::codex_config::CC_SWITCH_CODEX_MODEL_CATALOG_FILENAME)
+        })
+        .unwrap_or(false);
+
+    if !references_catalog {
+        if catalog_path.exists() {
+            if let Err(e) = crate::config::delete_file(&catalog_path) {
+                log::warn!(
+                    "清理 WSL 侧遗留 Codex model catalog 失败: {}: {e}",
+                    catalog_path.display()
+                );
+            }
+        }
+        return;
+    }
+
+    let source_catalog = crate::codex_config::get_codex_model_catalog_path();
+    if !source_catalog.exists() {
+        log::warn!(
+            "Codex model catalog 不存在，无法同步到 WSL 镜像: {}",
+            source_catalog.display()
+        );
+        return;
+    }
+
+    if let Ok(content) = fs::read(&source_catalog) {
+        if let Err(e) = crate::config::atomic_write(&catalog_path, &content) {
+            log::warn!(
+                "同步 Codex model catalog 到 WSL 镜像失败: {}: {e}",
+                catalog_path.display()
+            );
+        }
+    }
 }
 
 /// 镜像 Codex Live 配置到 WSL（若已配置）
@@ -255,22 +307,10 @@ pub fn mirror_codex_live_if_enabled(
                         "已同步清理后的 Codex config.toml 到 WSL 镜像: {}",
                         config_path.display()
                     );
-                    let catalog_path = wsl_dir.join(
-                        crate::codex_config::CC_SWITCH_CODEX_MODEL_CATALOG_FILENAME,
-                    );
-                    if catalog_path.exists() {
-                        if let Err(e) = crate::config::delete_file(&catalog_path) {
-                            log::warn!(
-                                "清理 WSL 侧遗留 Codex model catalog 失败: {}: {e}",
-                                catalog_path.display()
-                            );
-                        }
-                    }
+                    mirror_codex_model_catalog(&wsl_dir, &config);
                 }
             }
-            Err(e) => log::warn!(
-                "跳过无效的 Codex WSL 镜像配置，保留现有 WSL config.toml: {e}"
-            ),
+            Err(e) => log::warn!("跳过无效的 Codex WSL 镜像配置，保留现有 WSL config.toml: {e}"),
         }
     }
 
@@ -421,7 +461,7 @@ sandbox = "elevated"
         assert!(output.contains("model_provider"));
         assert!(output.contains("[model_providers.custom]"));
         assert!(output.contains("[features]"));
-        assert!(!output.contains("model_catalog_json"));
+        assert!(output.contains("model_catalog_json"));
         assert!(!output.contains("notify"));
         assert!(!output.contains("mcp_servers"));
         assert!(!output.contains("marketplaces"));
