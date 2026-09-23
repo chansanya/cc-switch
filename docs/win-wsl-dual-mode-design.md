@@ -22,7 +22,7 @@ CC Switch 在双模式场景下存在两项核心诉求：
 | **同步流向** | **单向镜像：Windows 主目录 → WSL 镜像目录** | 保持单一事实源（SSOT），坚决杜绝双向回填引发的版本脑裂与锁竞争 |
 | **错误隔离** | **容错降级 (Soft Fail)** | WSL 离线或 UNC 路径超时绝不阻断或回滚 Windows 主写入 |
 | **MCP 环境标记** | 独立 `runtimeTargets: { windows, wsl }` 字段 | 解耦“应用维度 (apps)”与“平台环境维度”，列表与编辑页直接切换 |
-| **MCP 路径处理** | **不进行路径映射**，由标记隔离环境专属 MCP | 避免将 Windows 盘符硬转为 `/mnt/` 的错误假定，Windows 与 WSL 专属服务各自独立标记 |
+| **Codex WSL 配置** | 独立保存 WSL `config.toml`，留空时投影 Windows 配置的白名单 | 不复制 Windows runtime、插件市场、通知和沙箱状态 |
 | **MCP 命令包装** | Windows 补齐/保留 `cmd /c`，WSL 仅脱壳受控 Node 命令 | 针对 `npx`, `npm`, `yarn`, `pnpm`, `node`, `bun`, `deno` 处理，保留非 Node 命令的原意 |
 | **Skills 同步** | 镜像到 WSL 时**强制文件递归复制** | 跨 Windows NTFS 与 WSL 9P/ext4 文件系统的符号链接不稳定，文件复制最可靠 |
 | **Prompts 同步** | 分别写入 `CLAUDE.md` 与 `AGENTS.md` | 两边均可直接被对应 CLI 识别生效 |
@@ -53,7 +53,7 @@ CC Switch 在双模式场景下存在两项核心诉求：
           -------------------      --------------------------
           • 写入 config.toml       • 写入 config.toml
           • 写入 auth.json         • 写入 auth.json (有有效凭证时)
-          • 写入 model-catalog     • 复制 model-catalog (若引用)
+          • 写入 model-catalog     • 不继承 Windows model-catalog
           • MCP: 保持 cmd /c       • MCP: 移除 cmd /c (受控命令)
           • Prompts: AGENTS.md     • Prompts: AGENTS.md
           • Skills: Symlink/Copy   • Skills: 强制递归复制
@@ -66,7 +66,13 @@ CC Switch 在双模式场景下存在两项核心诉求：
 
 设置界面在对应目录项旁提供输入框与 WSL 占位示例，支持保存时自动创建目标目录。
 
-### 3.3 MCP 运行环境自适应
+### 3.3 Codex WSL 独立配置
+
+Codex Provider 的 `settingsConfig.wslConfig` 保存 WSL 专用 TOML。配置了 Codex WSL 镜像目录后，Provider 编辑页显示独立编辑器；留空时，系统从 Windows `config.toml` 只投影 `model`、`model_provider`、`model_providers`、`features` 和上下文/推理相关字段。
+
+`notify`、`model_catalog_json`、`desktop`、`windows`、`marketplaces`、`plugins` 与整个 `[mcp_servers]` 都不会写入 WSL。WSL MCP 仅由 `runtimeTargets.wsl` 重新投影。
+
+### 3.4 MCP 运行环境自适应
 统一 MCP 数据模型扩展：
 ```typescript
 interface McpRuntimeTargets {

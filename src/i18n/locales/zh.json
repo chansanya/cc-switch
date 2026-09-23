@@ -1587,7 +1587,12 @@
     "reasoningGroupTitle": "思考能力",
     "reasoningSectionHint": "预设供应商已自动配置；自定义供应商会按名称/地址自动推断。仅当自动识别不准时才需手动覆盖。",
     "advancedSectionHint": "包含上游格式、模型映射、思考能力与自定义 User-Agent。使用 Chat Completions 协议的供应商需开启路由接管才能使用。",
-    "noCommonConfigToApply": "通用配置片段为空或没有可写入的内容"
+    "noCommonConfigToApply": "通用配置片段为空或没有可写入的内容",
+    "wslConfigToml": "WSL config.toml（独立配置）",
+    "wslConfigTomlDescription": "仅写入已配置的 WSL 镜像目录。留空时会从 Windows 配置中自动提取安全字段；MCP 由运行环境标记单独管理。",
+    "wslConfigTomlPlaceholder": "model_provider = \"custom\"\nmodel = \"gpt-5.6\"\n\n[model_providers.custom]\nbase_url = \"https://example.com/v1\"",
+    "wslConfigTomlInvalid": "WSL config.toml 格式无效",
+    "windowsConfigToml": "Windows config.toml（主配置）"
   },
   "geminiConfig": {
     "envFile": "环境变量 (.env)",

@@ -1056,7 +1056,8 @@ pub fn write_codex_live_atomic(
         return Err(e);
     }
 
-    crate::wsl_mirror::mirror_codex_live_if_enabled(Some(auth), false, config_text_opt);
+    // WSL 的 config.toml 由当前 Provider 的独立配置投影；这里只同步认证材料。
+    crate::wsl_mirror::mirror_codex_live_if_enabled(Some(auth), false, None);
 
     Ok(())
 }
@@ -1122,7 +1123,8 @@ pub fn write_codex_live_config_atomic(config_text_opt: Option<&str>) -> Result<(
     }
 
     write_text_file(&config_path, &cfg_text)?;
-    crate::wsl_mirror::mirror_codex_live_if_enabled(None, false, config_text_opt);
+    // 不用 Windows 运行时 config 覆盖 WSL 独立配置。
+    crate::wsl_mirror::mirror_codex_live_if_enabled(None, false, None);
     Ok(())
 }
 

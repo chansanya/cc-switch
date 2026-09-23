@@ -78,6 +78,7 @@ import { CommonConfigEditor } from "./CommonConfigEditor";
 import GeminiConfigEditor from "./GeminiConfigEditor";
 import JsonEditor from "@/components/JsonEditor";
 import { Label } from "@/components/ui/label";
+import { CodexWslConfigEditor } from "./CodexWslConfigEditor";
 import { ProviderPresetSelector } from "./ProviderPresetSelector";
 import { BasicFormFields } from "./BasicFormFields";
 import { ClaudeFormFields } from "./ClaudeFormFields";
@@ -89,6 +90,7 @@ import { McodeProviderForm } from "./McodeProviderForm";
 import { PiProviderForm } from "./PiProviderForm";
 import { OmoFormFields } from "./OmoFormFields";
 import { parseOmoOtherFieldsObject } from "@/types/omo";
+import { validateToml } from "@/utils/tomlUtils";
 import {
   ProviderAdvancedConfig,
   type PricingModelSourceOption,
@@ -696,6 +698,11 @@ function ProviderFormFull({
 
   const { configError: codexConfigError, debouncedValidate } =
     useCodexTomlValidation();
+  const initialCodexWslConfig = initialData?.settingsConfig?.wslConfig;
+  const [codexWslConfig, setCodexWslConfig] = useState(
+    typeof initialCodexWslConfig === "string" ? initialCodexWslConfig : "",
+  );
+  const [codexWslConfigError, setCodexWslConfigError] = useState("");
 
   const handleCodexConfigChange = useCallback(
     (value: string) => {
@@ -1114,6 +1121,16 @@ function ProviderFormFull({
     (appId === "claude" || appId === "codex") && category !== "official";
 
   const handleSubmit = async (values: ProviderFormData) => {
+    if (appId === "codex" && codexWslConfig.trim()) {
+      const error = validateToml(codexWslConfig);
+      if (error) {
+        setCodexWslConfigError(error);
+        toast.error(t("codexConfig.wslConfigTomlInvalid"));
+        return;
+      }
+    }
+    setCodexWslConfigError("");
+
     const overridesResult = shouldApplyLocalProxyRequestOverrides
       ? buildLocalProxyRequestOverrides(
           localProxyHeadersOverride,
@@ -1539,7 +1556,11 @@ function ProviderFormFull({
           auth: unknown;
           config: string;
           modelCatalog?: { models: CodexCatalogModel[] };
+          wslConfig?: string;
         };
+        if (codexWslConfig.trim()) {
+          configObj.wslConfig = codexWslConfig.trim();
+        }
         if (normalizedCatalogModels.length > 0) {
           configObj.modelCatalog = { models: normalizedCatalogModels };
         }
@@ -2634,6 +2655,11 @@ function ProviderFormFull({
           {/* 配置编辑器：Codex、Claude、Gemini 分别使用不同的编辑器 */}
           {appId === "codex" ? (
             <>
+              {settingsData?.codexWslMirrorDir ? (
+                <p className="text-xs font-medium text-muted-foreground">
+                  {t("codexConfig.windowsConfigToml")}
+                </p>
+              ) : null}
               <CodexConfigEditor
                 authValue={codexAuth}
                 configValue={codexConfig}
@@ -2655,6 +2681,16 @@ function ProviderFormFull({
                 onExtract={handleCodexExtract}
                 isExtracting={isCodexExtracting}
               />
+              {settingsData?.codexWslMirrorDir ? (
+                <CodexWslConfigEditor
+                  value={codexWslConfig}
+                  error={codexWslConfigError}
+                  onChange={(value) => {
+                    setCodexWslConfig(value);
+                    setCodexWslConfigError("");
+                  }}
+                />
+              ) : null}
               {settingsConfigErrorField}
             </>
           ) : appId === "gemini" ? (

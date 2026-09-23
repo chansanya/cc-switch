@@ -7,6 +7,7 @@
 use serde_json::{Map, Value};
 use std::fs;
 use std::path::Path;
+use toml_edit::DocumentMut;
 
 use crate::app_config::AppType;
 use crate::error::AppError;
@@ -172,6 +173,57 @@ pub fn mirror_claude_live_if_enabled(settings: &Value) {
     }
 }
 
+const WSL_CODEX_TOP_LEVEL_KEYS: &[&str] = &[
+    "model_provider",
+    "model",
+    "model_reasoning_effort",
+    "disable_response_storage",
+    "model_context_window",
+    "model_auto_compact_token_limit",
+    "features",
+    "model_providers",
+];
+
+/// 将 Windows Codex 配置收敛为 WSL 可运行的最小配置。
+///
+/// WSL 配置不继承桌面运行时、插件市场、Windows 沙箱、通知程序、模型目录或 MCP。
+/// MCP 由统一 MCP 服务按 `runtimeTargets.wsl` 单独投影，避免 Windows 专属服务残留。
+pub fn sanitize_codex_config_for_wsl(config_text: &str) -> Result<String, AppError> {
+    if config_text.trim().is_empty() {
+        return Ok(String::new());
+    }
+
+    let mut doc = config_text
+        .parse::<DocumentMut>()
+        .map_err(|e| AppError::Message(format!("Invalid Codex config.toml for WSL mirror: {e}")))?;
+
+    let keys: Vec<String> = doc
+        .as_table()
+        .iter()
+        .map(|(key, _)| key.to_string())
+        .collect();
+    for key in keys {
+        if !WSL_CODEX_TOP_LEVEL_KEYS.contains(&key.as_str()) {
+            doc.as_table_mut().remove(&key);
+        }
+    }
+
+    Ok(doc.to_string())
+}
+
+/// 根据当前 Provider 的 WSL 覆写配置投影 Codex config.toml。
+/// 若未填写覆写配置，使用 Windows Provider 配置的安全子集。
+pub fn mirror_codex_provider_if_enabled(provider: &crate::provider::Provider) {
+    let config_text = provider
+        .settings_config
+        .get("wslConfig")
+        .and_then(Value::as_str)
+        .filter(|config| !config.trim().is_empty())
+        .or_else(|| provider.settings_config.get("config").and_then(Value::as_str));
+
+    mirror_codex_live_if_enabled(None, false, config_text);
+}
+
 /// 镜像 Codex Live 配置到 WSL（若已配置）
 pub fn mirror_codex_live_if_enabled(
     auth: Option<&Value>,
@@ -191,33 +243,34 @@ pub fn mirror_codex_live_if_enabled(
     let auth_path = wsl_dir.join("auth.json");
 
     if let Some(text) = config_text {
-        if let Err(e) = crate::config::write_text_file(&config_path, text) {
-            log::warn!(
-                "写入 Codex WSL 镜像 config.toml 失败: {}: {e}",
-                config_path.display()
-            );
-        } else {
-            log::info!(
-                "已同步 Codex config.toml 到 WSL 镜像: {}",
-                config_path.display()
-            );
-        }
-
-        // 同步模型目录（若 config.toml 引用了 cc-switch-model-catalog.json）
-        let catalog_filename = crate::codex_config::CC_SWITCH_CODEX_MODEL_CATALOG_FILENAME;
-        if text.contains(catalog_filename) {
-            let src_catalog = crate::codex_config::get_codex_model_catalog_path();
-            if src_catalog.exists() {
-                let dst_catalog = wsl_dir.join(catalog_filename);
-                if let Ok(content) = fs::read(&src_catalog) {
-                    if let Err(e) = crate::config::atomic_write(&dst_catalog, &content) {
-                        log::warn!(
-                            "同步 Codex model catalog 到 WSL 镜像失败: {}: {e}",
-                            dst_catalog.display()
-                        );
+        match sanitize_codex_config_for_wsl(text) {
+            Ok(config) => {
+                if let Err(e) = crate::config::write_text_file(&config_path, &config) {
+                    log::warn!(
+                        "写入 Codex WSL 镜像 config.toml 失败: {}: {e}",
+                        config_path.display()
+                    );
+                } else {
+                    log::info!(
+                        "已同步清理后的 Codex config.toml 到 WSL 镜像: {}",
+                        config_path.display()
+                    );
+                    let catalog_path = wsl_dir.join(
+                        crate::codex_config::CC_SWITCH_CODEX_MODEL_CATALOG_FILENAME,
+                    );
+                    if catalog_path.exists() {
+                        if let Err(e) = crate::config::delete_file(&catalog_path) {
+                            log::warn!(
+                                "清理 WSL 侧遗留 Codex model catalog 失败: {}: {e}",
+                                catalog_path.display()
+                            );
+                        }
                     }
                 }
             }
+            Err(e) => log::warn!(
+                "跳过无效的 Codex WSL 镜像配置，保留现有 WSL config.toml: {e}"
+            ),
         }
     }
 
@@ -338,6 +391,42 @@ pub fn remove_skill_mirror_if_enabled(app: &AppType, directory: &str) {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn sanitize_codex_config_for_wsl_keeps_only_runtime_agnostic_fields() {
+        let input = r#"
+model_provider = "custom"
+model = "gpt-test"
+model_catalog_json = "cc-switch-model-catalog.json"
+notify = ["C:\\runtime\\notify.exe", "turn-ended"]
+
+[model_providers.custom]
+base_url = "https://example.test/v1"
+experimental_bearer_token = "secret"
+
+[features]
+goals = true
+
+[mcp_servers.windows_only]
+command = "C:\\runtime\\node_repl.exe"
+
+[marketplaces.windows_runtime]
+source = "C:\\runtime"
+
+[windows]
+sandbox = "elevated"
+"#;
+
+        let output = sanitize_codex_config_for_wsl(input).expect("sanitize config");
+        assert!(output.contains("model_provider"));
+        assert!(output.contains("[model_providers.custom]"));
+        assert!(output.contains("[features]"));
+        assert!(!output.contains("model_catalog_json"));
+        assert!(!output.contains("notify"));
+        assert!(!output.contains("mcp_servers"));
+        assert!(!output.contains("marketplaces"));
+        assert!(!output.contains("[windows]"));
+    }
 
     #[test]
     fn test_is_wsl_mirror_path() {

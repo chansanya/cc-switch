@@ -1587,7 +1587,12 @@
     "reasoningGroupTitle": "思考能力",
     "reasoningSectionHint": "プリセットの供給元は自動的に設定され、カスタム供給元は名前/URL から自動推論されます。自動識別が正しくない場合のみ手動で上書きしてください。",
     "advancedSectionHint": "上流フォーマット、モデルマッピング、思考能力、カスタム User-Agent の設定を含みます。Chat Completions プロトコルを使用するプロバイダーはルーティング引き継ぎの有効化が必要です。",
-    "noCommonConfigToApply": "共通設定スニペットが空か、書き込む内容がありません"
+    "noCommonConfigToApply": "共通設定スニペットが空か、書き込む内容がありません",
+    "wslConfigToml": "WSL config.toml（個別設定）",
+    "wslConfigTomlDescription": "設定済みの WSL ミラーディレクトリにのみ書き込みます。空欄の場合は Windows 設定から安全な項目だけを投影します。MCP は実行環境ごとに個別管理されます。",
+    "wslConfigTomlPlaceholder": "model_provider = \"custom\"\nmodel = \"gpt-5.6\"\n\n[model_providers.custom]\nbase_url = \"https://example.com/v1\"",
+    "wslConfigTomlInvalid": "WSL config.toml の形式が不正です",
+    "windowsConfigToml": "Windows config.toml（メイン設定）"
   },
   "geminiConfig": {
     "envFile": "環境変数 (.env)",

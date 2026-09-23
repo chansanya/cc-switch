@@ -1328,6 +1328,7 @@ pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Re
             {
                 crate::codex_config::record_codex_managed_oauth_live_auth(auth, &account_id)?;
             }
+            crate::wsl_mirror::mirror_codex_provider_if_enabled(provider);
         }
         AppType::Gemini => {
             // Delegate to write_gemini_live which handles env file writing correctly

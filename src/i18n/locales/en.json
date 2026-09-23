@@ -1587,7 +1587,12 @@
     "reasoningGroupTitle": "Reasoning Capability",
     "reasoningSectionHint": "Preset providers are configured automatically; custom providers are inferred from name/URL. Override manually only when auto-detection is wrong.",
     "advancedSectionHint": "Includes upstream format, model mapping, reasoning overrides and custom User-Agent. Providers using the Chat Completions protocol require routing takeover to be enabled.",
-    "noCommonConfigToApply": "The common config snippet is empty or contains nothing to write"
+    "noCommonConfigToApply": "The common config snippet is empty or contains nothing to write",
+    "wslConfigToml": "WSL config.toml (separate configuration)",
+    "wslConfigTomlDescription": "Written only to the configured WSL mirror directory. Leave empty to project safe fields from the Windows configuration; MCP is managed separately by runtime target.",
+    "wslConfigTomlPlaceholder": "model_provider = \"custom\"\nmodel = \"gpt-5.6\"\n\n[model_providers.custom]\nbase_url = \"https://example.com/v1\"",
+    "wslConfigTomlInvalid": "The WSL config.toml is invalid",
+    "windowsConfigToml": "Windows config.toml (primary configuration)"
   },
   "geminiConfig": {
     "envFile": "Environment Variables (.env)",
