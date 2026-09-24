@@ -328,7 +328,7 @@ export const CodexConfigSection: React.FC<CodexConfigSectionProps> = ({
         onChange={handleLocalChange}
         placeholder=""
         darkMode={isDarkMode}
-        rows={3}
+        height={Math.max(10, localValue.split("\n").length) * 20 + 20}
         showValidation={false}
         language="javascript"
       />

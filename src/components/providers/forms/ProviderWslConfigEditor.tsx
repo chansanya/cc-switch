@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
+import JsonEditor from "@/components/JsonEditor";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+import { useDarkMode } from "@/hooks/useDarkMode";
 
 interface ProviderWslConfigEditorProps {
   enabled: boolean;
@@ -23,11 +24,13 @@ export function ProviderWslConfigEditor({
   onChange,
 }: ProviderWslConfigEditorProps) {
   const { t } = useTranslation();
-  const label = format === "toml" ? "config.toml" : "JSON";
+  const isDarkMode = useDarkMode();
+  const label = format === "toml" ? "config.toml (TOML)" : "JSON";
+  const editorHeight = Math.max(10, value.split("\n").length) * 20 + 20;
 
   return (
-    <section className="space-y-3 rounded-lg border border-border-default bg-muted/20 p-4">
-      <div className="flex items-start justify-between gap-4">
+    <section className="space-y-4 border-t border-border/60 pt-5">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-6">
         <div className="space-y-1">
           <Label>{t("provider.wslConfigToggle")}</Label>
           <p className="text-xs text-muted-foreground">
@@ -36,24 +39,30 @@ export function ProviderWslConfigEditor({
               : t("provider.wslConfigPathRequired")}
           </p>
         </div>
-        <Switch
-          checked={enabled}
-          disabled={!pathConfigured && !enabled}
-          onCheckedChange={onEnabledChange}
-        />
+        <div className="flex min-w-12 justify-end pt-0.5">
+          <Switch
+            checked={enabled}
+            disabled={!pathConfigured && !enabled}
+            onCheckedChange={onEnabledChange}
+          />
+        </div>
       </div>
 
       {enabled ? (
-        <div className="space-y-2 border-t border-border/50 pt-3">
+        <div className="space-y-2">
           <Label htmlFor="providerWslConfig">
             {t("provider.wslConfigEditor", { format: label })}
           </Label>
-          <Textarea
+          <JsonEditor
             id="providerWslConfig"
+            ariaLabel={t("provider.wslConfigEditor", { format: label })}
             value={value}
-            onChange={(event) => onChange(event.target.value)}
+            onChange={onChange}
             placeholder={t("provider.wslConfigPlaceholder", { format: label })}
-            className="min-h-[220px] font-mono text-xs"
+            darkMode={isDarkMode}
+            height={editorHeight}
+            showValidation={format === "json"}
+            language={format === "json" ? "json" : "javascript"}
           />
           {!pathConfigured ? (
             <p className="text-xs text-destructive">
