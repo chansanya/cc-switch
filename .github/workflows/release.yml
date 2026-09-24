@@ -534,20 +534,27 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
-          name: CC Switch ${{ github.ref_name }}
-          prerelease: true
+          name: CC Switch 定制版 ${{ github.ref_name }}
+          prerelease: false
+          make_latest: true
           body: |
-            ## CC Switch ${{ github.ref_name }}
+            ## CC Switch 定制版 ${{ github.ref_name }}
 
-            🌐 **Only Official Website / 唯一官方网站 / 唯一の公式サイト**: [ccswitch.io](https://ccswitch.io)
+            面向 Windows 的 Claude Code、Codex 与 Pi 配置管理工具。
 
-            Claude Code 供应商切换工具
+            ### 本版特性
+
+            - 仅保留 Claude Code、Codex 与 Pi 主界面入口
+            - 支持 Codex Windows / WSL 独立配置
+            - 支持 MCP 按 Windows / WSL 运行环境投影
+            - 已移除路由接管、托管认证中心与应用内更新入口
 
             ### 下载
 
-            - **Windows (x86_64)**: `CC-Switch-${{ github.ref_name }}-Windows.msi`（安装版）或 `CC-Switch-${{ github.ref_name }}-Windows-Portable.zip`（绿色版）
+            - **Windows x86_64 安装版**：`CC-Switch-${{ github.ref_name }}-Windows.msi`
+            - **Windows x86_64 便携版**：`CC-Switch-${{ github.ref_name }}-Windows-Portable.zip`
 
-            当前发布仅提供 Windows x86_64 制品。
+            此版本为个人使用的无签名 Windows 构建，安装时可能显示未知发布者提示。
           files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
