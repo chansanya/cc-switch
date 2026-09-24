@@ -1,95 +1,95 @@
 <div align="center">
 
-# CC Switch Custom Edition
+# CC Switch 定制版
 
-### Windows-focused configuration manager for Claude Code, Codex, and Pi
+### 面向 Windows 的 Claude Code、Codex 与 Pi 配置管理工具
 
 [![Version](https://img.shields.io/github/v/release/chansanya/cc-switch?color=blue&label=version)](https://github.com/chansanya/cc-switch/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://github.com/chansanya/cc-switch/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 
-English | [中文](README_ZH.md) | [Custom Edition Notes](docs/custom-edition-zh.md) | [Changelog](CHANGELOG.md)
+[English](README_EN.md) | 中文 | [定制版说明](docs/custom-edition-zh.md) | [更新日志](CHANGELOG.md)
 
 </div>
 
-> This repository is a personal custom build based on upstream [farion1231/cc-switch](https://github.com/farion1231/cc-switch). This document describes only the features exposed by this branch. Upstream multi-app, cross-platform, routing, and managed-auth documentation does not apply to this edition.
+> 本仓库是基于上游 [farion1231/cc-switch](https://github.com/farion1231/cc-switch) 的个人定制版本。当前文档只描述本分支实际保留的功能；上游的多应用、跨平台、代理路由与托管认证文档不适用于本版本。
 
-## Purpose
+## 定制目标
 
-This edition removes unused modules and focuses on a small Windows development workflow:
+这个版本不是“全家桶”，而是把日常不用的模块收掉，只保留 Windows 开发环境中最常用的配置管理能力：
 
-- **Claude Code** provider, Prompt, Skill, MCP, and directory management.
-- **Codex** provider, model catalog, Prompt, Skill, MCP, and separate Windows / WSL configuration.
-- **Pi** provider, Prompt, and Skill management.
-- **One-way Windows → WSL mirroring**, with Windows remaining authoritative.
+- **Claude Code**：供应商、Prompts、Skills、MCP 与配置目录管理。
+- **Codex**：供应商、模型映射、Prompts、Skills、MCP，以及 Windows / WSL 双配置。
+- **Pi**：供应商、Prompts 与 Skills 管理。
+- **Windows → WSL 单向镜像**：Windows 保持主配置，WSL 使用独立目录与独立 Codex `config.toml`。
 
-## Retained Features
+## 保留功能
 
-### Provider management
+### 供应商管理
 
-- Add, edit, switch, sort, import, and export Claude Code, Codex, and Pi providers.
-- Manage Codex custom models and `cc-switch-model-catalog.json`.
-- SQLite persistence, atomic writes, and configuration backups.
+- Claude Code、Codex、Pi 供应商的新增、编辑、切换、排序与导入导出。
+- Codex 自定义模型与 `cc-switch-model-catalog.json` 管理。
+- SQLite 持久化、原子写入与配置备份。
 
-### Windows / WSL mode
+### Windows / WSL 双模式
 
-Configure a WSL UNC directory for Claude Code or Codex, for example:
+在设置中为 Claude Code 或 Codex 配置 WSL UNC 目录，例如：
 
 ```text
 \\wsl.localhost\Ubuntu\home\dev\.codex
 ```
 
-Behavior:
+同步规则：
 
-- Windows is the primary configuration; WSL changes are not backfilled.
-- Codex providers can store separate Windows and WSL `config.toml` content.
-- Windows-only sections such as `notify`, `desktop`, `windows`, `marketplaces`, and `plugins` are excluded from WSL.
-- `model_catalog_json` and its generated catalog are synchronized when model mappings are enabled.
-- MCP servers explicitly target Windows, WSL, or both. WSL unwraps supported Node commands from `cmd /c`; file paths are never rewritten.
-- Skills are copied into WSL instead of using cross-filesystem symbolic links.
+- Windows 是主配置，不从 WSL 反向回填。
+- Codex Provider 可分别编辑 Windows 和 WSL 的 `config.toml`。
+- WSL 自动过滤 `notify`、`desktop`、`windows`、`marketplaces`、`plugins` 等 Windows 专属配置。
+- `model_catalog_json` 与模型目录按模型映射同步。
+- MCP 通过 `Windows / WSL` 运行环境标记决定写入目标；WSL 仅对受控 Node 命令移除 `cmd /c`，不转换文件路径。
+- Skills 写入 WSL 时使用文件复制，不创建跨文件系统符号链接。
 
-See [Windows / WSL dual-mode design](docs/win-wsl-dual-mode-design.md) for details.
+详细规则见 [Windows / WSL 双模式设计](docs/win-wsl-dual-mode-design.md)。
 
-### MCP, Prompts, and Skills
+### MCP、Prompts 与 Skills
 
-- Unified MCP management for Claude Code and Codex, with per-runtime targeting.
-- Prompt management for `CLAUDE.md` and Codex / Pi `AGENTS.md`.
-- Skill installation from repositories or ZIP files and projection into enabled apps.
+- MCP：统一管理 Claude Code 与 Codex 服务，并分别选择 Windows、WSL 或双端运行。
+- Prompts：管理 `CLAUDE.md`、Codex / Pi 的 `AGENTS.md`。
+- Skills：从仓库或 ZIP 安装，并投影到已启用的应用目录。
 
-## Removed or Hidden
+## 已移除或隐藏的功能
 
-This edition does not expose:
+此定制版本不提供以下入口：
 
-- Claude Desktop, Gemini CLI, Grok Build, OpenCode, OpenClaw, Hermes, or MiniMax Code on the main screen.
-- Local proxy, routing takeover, failover controls, or their settings pages.
-- The managed authentication center and account-management panels.
-- In-app update checks, update badges, or updater actions in the About page.
-- macOS, Linux, or Windows ARM64 release artifacts.
+- Claude Desktop、Gemini CLI、Grok Build、OpenCode、OpenClaw、Hermes、MiniMax Code 主页面入口。
+- 本地代理、路由接管、故障转移与相关设置页面。
+- 托管认证中心及供应商表单中的账号管理入口。
+- 应用内检查更新、自动更新提示与“关于”页面更新操作。
+- macOS、Linux 与 Windows ARM64 发布制品。
 
-Provider API keys remain ordinary provider configuration and are not the removed managed-auth feature.
+API Key 等供应商基础凭据仍属于配置内容，不等同于已移除的“托管认证中心”。
 
-## Installation
+## 安装
 
-Only unsigned **Windows x86_64** test artifacts are published:
+仅提供 **Windows x86_64** 无签名测试制品：
 
-- `.msi` installer
-- `Windows-Portable.zip`
+- `.msi` 安装包
+- `Windows-Portable.zip` 便携版
 
-Download them from [Releases](https://github.com/chansanya/cc-switch/releases). Windows may display an unknown publisher warning because these personal builds are unsigned.
+从 [Releases](https://github.com/chansanya/cc-switch/releases) 下载。由于是个人无签名构建，Windows 可能显示未知发布者提示；请只使用本仓库生成的制品。
 
-Requirements: Windows 10 or later. WSL mirroring requires an installed and accessible WSL2 distribution.
+系统要求：Windows 10 或更高版本。WSL 镜像功能需要已安装并可访问的 WSL2 发行版。
 
-## Quick Start
+## 快速使用
 
-1. Confirm the Windows Claude Code and Codex directories in Settings.
-2. Optionally enter their WSL UNC mirror directories.
-3. Add and switch providers from the Claude Code, Codex, or Pi page.
-4. Edit separate Windows and WSL `config.toml` content in a Codex provider.
-5. Choose Windows, WSL, or both for each MCP server.
+1. 打开设置，在“配置目录”中确认 Claude Code、Codex 的 Windows 主目录。
+2. 如需 WSL，同一区域填写对应的 WSL UNC 镜像目录。
+3. 在 Claude Code、Codex 或 Pi 页面新增供应商并切换。
+4. Codex 供应商编辑页可分别维护 Windows 与 WSL `config.toml`。
+5. 在 MCP 列表中为每个服务选择 Windows、WSL 或双端运行环境。
 
-## Development
+## 开发
 
-The React renderer lives in `src/`; the Rust / Tauri backend lives in `src-tauri/`. Tests are under `tests/` and `src-tauri/tests/`.
+前端位于 `src/`，Rust / Tauri 后端位于 `src-tauri/`，测试位于 `tests/` 与 `src-tauri/tests/`。
 
 ```bash
 pnpm install
@@ -98,7 +98,7 @@ pnpm typecheck
 pnpm test:unit
 ```
 
-Rust checks:
+Rust 检查：
 
 ```bash
 cd src-tauri
@@ -107,12 +107,12 @@ cargo clippy
 cargo test
 ```
 
-GitHub Actions for this branch validate Windows only and publish unsigned Windows x86_64 prerelease artifacts.
+本定制分支的 GitHub Actions 仅验证 Windows，并生成 Windows x86_64 无签名 prerelease 制品。
 
-## Security
+## 安全提醒
 
-Never publish API keys, GitHub tokens, database passwords, SSH passwords, or OAuth tokens in issues, logs, screenshots, or example configurations. Revoke any credential immediately after accidental exposure.
+不要在 Issue、日志、截图或示例配置中提交 API Key、GitHub Token、数据库密码、SSH 密码或 OAuth Token。凭据一旦公开，应立即撤销并重新生成。
 
-## Upstream and License
+## 上游与许可证
 
-Based on [farion1231/cc-switch](https://github.com/farion1231/cc-switch), licensed under the repository's [MIT License](LICENSE). Refer to the upstream repository for the original complete product documentation.
+本项目基于 [farion1231/cc-switch](https://github.com/farion1231/cc-switch) 修改，遵循仓库中的 [MIT License](LICENSE)。上游历史说明与完整功能文档可在上游仓库查看。
