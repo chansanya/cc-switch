@@ -205,7 +205,9 @@ function App() {
   const visibleApps = useMemo<VisibleApps>(
     () => ({
       ...DEFAULT_VISIBLE_APPS,
-      ...settingsData?.visibleApps,
+      claude: settingsData?.visibleApps?.claude ?? true,
+      codex: settingsData?.visibleApps?.codex ?? true,
+      pi: settingsData?.visibleApps?.pi ?? true,
     }),
     [settingsData?.visibleApps],
   );

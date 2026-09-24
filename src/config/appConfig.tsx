@@ -16,18 +16,7 @@ export interface AppConfig {
   badgeClass: string;
 }
 
-export const APP_IDS: AppId[] = [
-  "claude",
-  "claude-desktop",
-  "codex",
-  "gemini",
-  "grokbuild",
-  "opencode",
-  "openclaw",
-  "hermes",
-  "pi",
-  "mcode",
-];
+export const APP_IDS: AppId[] = ["claude", "codex", "pi"];
 
 export const DEFAULT_VISIBLE_APPS: VisibleApps = {
   claude: true,
@@ -43,16 +32,7 @@ export const DEFAULT_VISIBLE_APPS: VisibleApps = {
 };
 
 /** App IDs shown in Skills panels. */
-export const SKILLS_APP_IDS: AppId[] = [
-  "claude",
-  "codex",
-  "gemini",
-  "grokbuild",
-  "opencode",
-  "hermes",
-  "pi",
-  "mcode",
-];
+export const SKILLS_APP_IDS: AppId[] = ["claude", "codex", "pi"];
 
 export type ProxyAppId = Extract<
   AppId,
@@ -90,15 +70,7 @@ export function isAdditiveAppId(appId: string): appId is AdditiveAppId {
 
 /** Pi has no native MCP registry; do not manufacture a disabled mirror. */
 export type McpAppId = Exclude<AppId, "claude-desktop" | "openclaw" | "pi">;
-export const MCP_APP_IDS: McpAppId[] = [
-  "claude",
-  "codex",
-  "gemini",
-  "grokbuild",
-  "opencode",
-  "hermes",
-  "mcode",
-];
+export const MCP_APP_IDS: McpAppId[] = ["claude", "codex"];
 
 export function isMcpAppId(appId: string): appId is McpAppId {
   return (MCP_APP_IDS as string[]).includes(appId);
