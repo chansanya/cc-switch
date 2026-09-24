@@ -426,6 +426,8 @@ export interface Settings {
   claudeWslMirrorDir?: string;
   // Codex WSL 镜像目录（可选）
   codexWslMirrorDir?: string;
+  // Pi WSL 镜像目录（可选）
+  piWslMirrorDir?: string;
 
   // ===== 当前供应商 ID（设备级）=====
   // 当前 Claude 供应商 ID（优先于数据库 is_current）

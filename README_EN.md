@@ -20,8 +20,8 @@ This edition removes unused modules and focuses on a small Windows development w
 
 - **Claude Code** provider, Prompt, Skill, MCP, and directory management.
 - **Codex** provider, model catalog, Prompt, Skill, MCP, and separate Windows / WSL configuration.
-- **Pi** provider, Prompt, and Skill management.
-- **One-way Windows → WSL mirroring**, with Windows remaining authoritative.
+- **Pi** provider, Prompt, Skill, and optional separate WSL provider configuration.
+- **One-way Windows → WSL mirroring**, with Windows remaining authoritative and provider-level WSL configurations kept separate.
 
 ## Retained Features
 
@@ -33,7 +33,7 @@ This edition removes unused modules and focuses on a small Windows development w
 
 ### Windows / WSL mode
 
-Configure a WSL UNC directory for Claude Code or Codex, for example:
+Configure a WSL UNC directory for Claude Code, Codex, or Pi, for example:
 
 ```text
 \\wsl.localhost\Ubuntu\home\dev\.codex
@@ -42,7 +42,7 @@ Configure a WSL UNC directory for Claude Code or Codex, for example:
 Behavior:
 
 - Windows is the primary configuration; WSL changes are not backfilled.
-- Codex providers can store separate Windows and WSL `config.toml` content.
+- Each Claude, Codex, and Pi provider can independently enable a WSL configuration; Codex stores separate Windows and WSL `config.toml` content.
 - Windows-only sections such as `notify`, `desktop`, `windows`, `marketplaces`, and `plugins` are excluded from WSL.
 - `model_catalog_json` and its generated catalog are synchronized when model mappings are enabled.
 - MCP servers explicitly target Windows, WSL, or both. WSL unwraps supported Node commands from `cmd /c`; file paths are never rewritten.

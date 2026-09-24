@@ -314,13 +314,16 @@ export function SettingsPage({
                             codexDir={settings.codexConfigDir}
                             claudeWslMirrorDir={settings.claudeWslMirrorDir}
                             codexWslMirrorDir={settings.codexWslMirrorDir}
-                            onWslMirrorDirChange={(app, val) =>
-                              updateSettings({
-                                [app === "claude"
+                            piWslMirrorDir={settings.piWslMirrorDir}
+                            onWslMirrorDirChange={(app, val) => {
+                              const field =
+                                app === "claude"
                                   ? "claudeWslMirrorDir"
-                                  : "codexWslMirrorDir"]: val,
-                              })
-                            }
+                                  : app === "codex"
+                                    ? "codexWslMirrorDir"
+                                    : "piWslMirrorDir";
+                              updateSettings({ [field]: val });
+                            }}
                             piDir={settings.piConfigDir}
                             onDirectoryChange={updateDirectory}
                             onBrowseDirectory={browseDirectory}

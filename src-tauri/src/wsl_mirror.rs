@@ -15,6 +15,48 @@ use crate::error::AppError;
 pub const CONTROLLED_NODE_COMMANDS: &[&str] =
     &["npx", "npm", "yarn", "pnpm", "node", "bun", "deno"];
 
+pub const WSL_ENABLED_KEY: &str = "wslEnabled";
+pub const WSL_CONFIG_KEY: &str = "wslConfig";
+
+pub fn provider_wsl_enabled(settings: &Value) -> bool {
+    settings
+        .get(WSL_ENABLED_KEY)
+        .and_then(Value::as_bool)
+        .unwrap_or_else(|| {
+            settings
+                .get(WSL_CONFIG_KEY)
+                .is_some_and(|config| match config {
+                    Value::String(value) => !value.trim().is_empty(),
+                    Value::Object(value) => !value.is_empty(),
+                    _ => false,
+                })
+        })
+}
+
+pub fn provider_wsl_config(settings: &Value) -> Option<&Value> {
+    settings.get(WSL_CONFIG_KEY)
+}
+
+pub fn strip_provider_wsl_fields(settings: &Value) -> Value {
+    let mut native = settings.clone();
+    if let Some(object) = native.as_object_mut() {
+        object.remove(WSL_ENABLED_KEY);
+        object.remove(WSL_CONFIG_KEY);
+    }
+    native
+}
+
+pub fn preserve_provider_wsl_fields(source: &Value, target: &mut Value) {
+    let Some(target) = target.as_object_mut() else {
+        return;
+    };
+    for key in [WSL_ENABLED_KEY, WSL_CONFIG_KEY] {
+        if let Some(value) = source.get(key) {
+            target.insert(key.to_string(), value.clone());
+        }
+    }
+}
+
 /// 检测路径是否为 WSL UNC 路径（如 \\wsl$\Ubuntu\... 或 \\wsl.localhost\Ubuntu\...）
 pub fn is_wsl_mirror_path(path: &Path) -> bool {
     let s = path.to_string_lossy();
@@ -151,25 +193,28 @@ pub fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-/// 镜像 Claude Live 配置到 WSL（若已配置）
-pub fn mirror_claude_live_if_enabled(settings: &Value) {
+/// 按供应商开关镜像 Claude 独立配置到 WSL。
+pub fn mirror_claude_provider_if_enabled(provider: &crate::provider::Provider) {
+    if !provider_wsl_enabled(&provider.settings_config) {
+        return;
+    }
+    let Some(settings) = provider_wsl_config(&provider.settings_config) else {
+        return;
+    };
     let Some(wsl_dir) = crate::settings::get_claude_wsl_mirror_dir() else {
         return;
     };
-
     if let Err(e) = ensure_wsl_mirror_dir(&wsl_dir) {
         log::warn!("创建 Claude WSL 镜像目录失败: {}: {e}", wsl_dir.display());
         return;
     }
-
     let target_file = wsl_dir.join("settings.json");
-    if let Err(e) = crate::config::write_json_file(&target_file, settings) {
+    let native = strip_provider_wsl_fields(settings);
+    if let Err(e) = crate::config::write_json_file(&target_file, &native) {
         log::warn!(
-            "写入 Claude WSL 镜像配置失败: {}: {e}",
+            "写入 Claude WSL 独立配置失败: {}: {e}",
             target_file.display()
         );
-    } else {
-        log::info!("已同步 Claude 配置到 WSL 镜像: {}", target_file.display());
     }
 }
 
@@ -185,7 +230,7 @@ const WSL_CODEX_TOP_LEVEL_KEYS: &[&str] = &[
     "model_providers",
 ];
 
-/// 将 Windows Codex 配置收敛为 WSL 可运行的最小配置。
+/// 将 Codex 独立配置收敛为 WSL 可运行的最小配置。
 ///
 /// WSL 配置不继承桌面运行时、插件市场、Windows 沙箱、通知程序或 MCP；模型目录由 Provider 数据生成。
 /// MCP 由统一 MCP 服务按 `runtimeTargets.wsl` 单独投影，避免 Windows 专属服务残留。
@@ -212,25 +257,14 @@ pub fn sanitize_codex_config_for_wsl(config_text: &str) -> Result<String, AppErr
     Ok(doc.to_string())
 }
 
-/// 根据当前 Provider 的 WSL 覆写配置投影 Codex config.toml。
-/// 若未填写覆写配置，使用 Windows Provider 配置的安全子集。
+/// 根据当前 Provider 的 WSL 独立配置投影 Codex config.toml。
 pub fn mirror_codex_provider_if_enabled(provider: &crate::provider::Provider) {
-    let source_key = if provider
-        .settings_config
-        .get("wslConfig")
-        .and_then(Value::as_str)
-        .is_some_and(|config| !config.trim().is_empty())
-    {
-        "wslConfig"
-    } else {
-        "config"
-    };
-    let config_text = provider
-        .settings_config
-        .get(source_key)
-        .and_then(Value::as_str);
-
-    mirror_codex_live_if_enabled(None, false, config_text);
+    if !provider_wsl_enabled(&provider.settings_config) {
+        return;
+    }
+    let config_text = provider_wsl_config(&provider.settings_config).and_then(Value::as_str);
+    let auth = provider.settings_config.get("auth");
+    mirror_codex_live_if_enabled(auth, false, config_text);
 }
 
 fn mirror_codex_model_catalog(wsl_dir: &Path, config: &str) {
@@ -335,6 +369,34 @@ pub fn mirror_codex_live_if_enabled(
     }
 }
 
+pub fn mirror_pi_provider_if_enabled(provider: &crate::provider::Provider) {
+    if !provider_wsl_enabled(&provider.settings_config) {
+        return;
+    }
+    let Some(config) = provider_wsl_config(&provider.settings_config) else {
+        return;
+    };
+    let Some(wsl_dir) = crate::settings::get_pi_wsl_mirror_dir() else {
+        return;
+    };
+    let native = strip_provider_wsl_fields(config);
+    if let Err(e) = crate::pi_config::upsert_pi_provider_in_dir(&wsl_dir, &provider.id, &native) {
+        log::warn!("写入 Pi WSL 独立配置失败: {}: {e}", wsl_dir.display());
+    }
+}
+
+pub fn remove_pi_provider_mirror_if_enabled(provider: &crate::provider::Provider) {
+    if !provider_wsl_enabled(&provider.settings_config) {
+        return;
+    }
+    let Some(wsl_dir) = crate::settings::get_pi_wsl_mirror_dir() else {
+        return;
+    };
+    if let Err(e) = crate::pi_config::remove_pi_provider_in_dir(&wsl_dir, &provider.id) {
+        log::warn!("删除 Pi WSL 独立配置失败: {}: {e}", wsl_dir.display());
+    }
+}
+
 /// 镜像 Prompt 内容到 WSL（若已配置）
 pub fn mirror_prompt_if_enabled(app: &AppType, content: &str) {
     let (target_file, app_name) = match app {
@@ -435,6 +497,37 @@ pub fn remove_skill_mirror_if_enabled(app: &AppType, directory: &str) {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn strip_provider_wsl_fields_keeps_native_config_clean() {
+        let settings = json!({
+            "apiKey": "secret",
+            "wslEnabled": true,
+            "wslConfig": { "apiKey": "wsl-secret" }
+        });
+
+        assert_eq!(
+            strip_provider_wsl_fields(&settings),
+            json!({ "apiKey": "secret" })
+        );
+    }
+
+    #[test]
+    fn preserve_provider_wsl_fields_restores_internal_state() {
+        let source = json!({
+            "wslEnabled": false,
+            "wslConfig": { "baseUrl": "https://wsl.example.test" }
+        });
+        let mut target = json!({ "baseUrl": "https://windows.example.test" });
+
+        preserve_provider_wsl_fields(&source, &mut target);
+
+        assert_eq!(target["wslEnabled"], false);
+        assert_eq!(
+            target["wslConfig"],
+            json!({ "baseUrl": "https://wsl.example.test" })
+        );
+    }
 
     #[test]
     fn sanitize_codex_config_for_wsl_keeps_only_runtime_agnostic_fields() {

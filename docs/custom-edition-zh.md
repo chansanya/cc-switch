@@ -1,6 +1,6 @@
 # CC Switch 定制版范围
 
-本文说明 `codex/win-wsl-mirror` 定制线与上游完整版的差异，适用于 2026-09-24 之后的 Windows 测试构建。
+本文说明 `dev` 定制线与上游完整版的差异，适用于 2026-09-24 之后的 Windows 测试构建。
 
 ## 当前保留
 
@@ -10,19 +10,19 @@
 | Prompts | `CLAUDE.md` | `AGENTS.md` | `AGENTS.md` |
 | Skills | 支持 | 支持 | 支持 |
 | MCP | 支持 | 支持 | 无原生 MCP 注册表 |
-| Windows / WSL 镜像 | 支持 | 支持 | 不支持 |
-| 独立 WSL `config.toml` | 不适用 | 支持 | 不适用 |
+| Windows / WSL 镜像 | 支持 | 支持 | 支持 |
+| 供应商级 WSL 独立配置 | JSON | TOML | JSON |
 
-## Codex Windows / WSL 配置
+## 供应商级 Windows / WSL 配置
 
-每个 Codex Provider 可以保存：
+Claude、Codex、Pi 的每个 Provider 都可保存 `wslEnabled` 与 `wslConfig`。Codex 结构为：
 
 ```text
 settingsConfig.config     Windows config.toml
 settingsConfig.wslConfig  WSL config.toml（可选）
 ```
 
-`wslConfig` 留空时，程序从 Windows 配置中仅保留模型、Provider、推理、上下文、Features 与模型目录字段。以下 Windows 专属内容不会进入 WSL：
+供应商关闭 `wslEnabled` 时完全不写 WSL，但保留已保存的 `wslConfig`。Codex 开启后只使用独立 TOML，并在写入前移除以下 Windows 专属内容：
 
 ```text
 notify

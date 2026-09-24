@@ -128,6 +128,7 @@ export function useSettingsForm(): UseSettingsFormResult {
       piConfigDir: sanitizeDir(data.piConfigDir),
       claudeWslMirrorDir: sanitizeDir(data.claudeWslMirrorDir),
       codexWslMirrorDir: sanitizeDir(data.codexWslMirrorDir),
+      piWslMirrorDir: sanitizeDir(data.piWslMirrorDir),
       language: normalizedLanguage,
     };
 
@@ -198,6 +199,7 @@ export function useSettingsForm(): UseSettingsFormResult {
         piConfigDir: sanitizeDir(serverData.piConfigDir),
         claudeWslMirrorDir: sanitizeDir(serverData.claudeWslMirrorDir),
         codexWslMirrorDir: sanitizeDir(serverData.codexWslMirrorDir),
+        piWslMirrorDir: sanitizeDir(serverData.piWslMirrorDir),
         language: normalizedLanguage,
       };
 

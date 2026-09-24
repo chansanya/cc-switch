@@ -1056,9 +1056,6 @@ pub fn write_codex_live_atomic(
         return Err(e);
     }
 
-    // WSL 的 config.toml 由当前 Provider 的独立配置投影；这里只同步认证材料。
-    crate::wsl_mirror::mirror_codex_live_if_enabled(Some(auth), false, None);
-
     Ok(())
 }
 
@@ -1123,8 +1120,6 @@ pub fn write_codex_live_config_atomic(config_text_opt: Option<&str>) -> Result<(
     }
 
     write_text_file(&config_path, &cfg_text)?;
-    // 不用 Windows 运行时 config 覆盖 WSL 独立配置。
-    crate::wsl_mirror::mirror_codex_live_if_enabled(None, false, None);
     Ok(())
 }
 
@@ -4007,7 +4002,6 @@ fn remove_codex_live_auth_after_third_party_switch() {
             log::warn!("Failed to remove auth.json after a third-party Codex switch: {e}");
         }
     }
-    crate::wsl_mirror::mirror_codex_live_if_enabled(None, true, None);
 }
 
 /// Build the live Codex config for provider switching.

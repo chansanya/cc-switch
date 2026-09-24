@@ -3553,7 +3553,6 @@ impl ProxyService {
         let path = get_claude_settings_path();
         let settings = crate::services::provider::sanitize_claude_settings_for_live(config);
         write_json_file(&path, &settings).map_err(|e| format!("写入 Claude 配置失败: {e}"))?;
-        crate::wsl_mirror::mirror_claude_live_if_enabled(&settings);
         Ok(())
     }
 

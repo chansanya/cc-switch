@@ -181,7 +181,13 @@
     },
     "duplicateLiveIdsLoadFailed": "Failed to read provider identifiers from config, please fix the config and try again",
     "wslIndependentConfig": "Win / WSL configs",
-    "wslIndependentConfigHint": "This provider stores separate Windows and WSL config.toml content and writes each configuration to its matching runtime directory."
+    "wslIndependentConfigHint": "This provider stores separate Windows and WSL configurations and writes each one to its matching runtime directory.",
+    "wslConfigToggle": "Enable separate WSL configuration",
+    "wslConfigToggleDescription": "Store separate Windows and WSL configurations for this provider.",
+    "wslConfigPathRequired": "Configure the corresponding WSL mirror directory in Settings first.",
+    "wslConfigEditor": "Separate WSL configuration ({{format}})",
+    "wslConfigPlaceholder": "Enter the {{format}} configuration used by WSL",
+    "wslConfigObjectRequired": "The WSL configuration must be a valid JSON object."
   },
   "claudeCode": {
     "needsRouting": "Needs Routing",
@@ -907,7 +913,9 @@
     "claudeWslMirrorDir": "Claude WSL Mirror Directory",
     "codexWslMirrorDir": "Codex WSL Mirror Directory",
     "wslMirrorPlaceholderClaude": "e.g. \\\\wsl.localhost\\Ubuntu\\home\\user\\.claude",
-    "wslMirrorPlaceholderCodex": "e.g. \\\\wsl.localhost\\Ubuntu\\home\\user\\.codex"
+    "wslMirrorPlaceholderCodex": "e.g. \\\\wsl.localhost\\Ubuntu\\home\\user\\.codex",
+    "piWslMirrorDir": "Pi WSL Mirror Directory",
+    "wslMirrorPlaceholderPi": "e.g. \\\\wsl.localhost\\Ubuntu\\home\\dev\\.pi\\agent"
   },
   "apps": {
     "claude": "Claude",

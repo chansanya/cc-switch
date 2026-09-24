@@ -118,6 +118,35 @@ pub(crate) fn pi_provider_exists(provider_key: &str) -> Result<bool, AppError> {
     Ok(providers(&document, &path)?.contains_key(provider_key))
 }
 
+pub(crate) fn upsert_pi_provider_in_dir(
+    agent_dir: &Path,
+    provider_key: &str,
+    config: &Value,
+) -> Result<(), AppError> {
+    validate_provider_node(provider_key, config)?;
+    let _guard = lock_models_file()?;
+    let path = agent_dir.join("models.json");
+    let (mut document, expected_revision) = read_models_document_with_revision(&path)?;
+    providers_mut(&mut document, &path)?.insert(provider_key.to_string(), config.clone());
+    write_models_document(&path, &document, &expected_revision)
+}
+
+pub(crate) fn remove_pi_provider_in_dir(
+    agent_dir: &Path,
+    provider_key: &str,
+) -> Result<(), AppError> {
+    let _guard = lock_models_file()?;
+    let path = agent_dir.join("models.json");
+    let (mut document, expected_revision) = read_models_document_with_revision(&path)?;
+    if providers_mut(&mut document, &path)?
+        .remove(provider_key)
+        .is_some()
+    {
+        write_models_document(&path, &document, &expected_revision)?;
+    }
+    Ok(())
+}
+
 pub(crate) fn insert_pi_provider(provider_key: &str, config: &Value) -> Result<bool, AppError> {
     validate_provider_node(provider_key, config)?;
     let _guard = lock_models_file()?;

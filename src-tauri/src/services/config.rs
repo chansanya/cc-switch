@@ -228,7 +228,8 @@ impl ConfigService {
         let settings = sanitize_claude_settings_for_live(&provider.settings_config);
         write_json_file(&settings_path, &settings)?;
 
-        let live_after = read_json_file::<serde_json::Value>(&settings_path)?;
+        let mut live_after = read_json_file::<serde_json::Value>(&settings_path)?;
+        crate::wsl_mirror::preserve_provider_wsl_fields(&provider.settings_config, &mut live_after);
         if let Some(manager) = config.get_manager_mut(&AppType::Claude) {
             if let Some(target) = manager.providers.get_mut(provider_id) {
                 target.settings_config = live_after;

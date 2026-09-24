@@ -18,11 +18,11 @@ CC Switch 在双模式场景下存在两项核心诉求：
 
 | 维度 | V1 设计决策 | 理由与收益 |
 | :--- | :--- | :--- |
-| **支持范围** | 仅支持 **Claude Code** 与 **Codex** | 聚焦最高频开发工具，避免扩大改动面 |
+| **支持范围** | 仅支持 **Claude Code**、**Codex** 与 **Pi** | 聚焦最高频开发工具，避免扩大改动面 |
 | **同步流向** | **单向镜像：Windows 主目录 → WSL 镜像目录** | 保持单一事实源（SSOT），坚决杜绝双向回填引发的版本脑裂与锁竞争 |
 | **错误隔离** | **容错降级 (Soft Fail)** | WSL 离线或 UNC 路径超时绝不阻断或回滚 Windows 主写入 |
 | **MCP 环境标记** | 独立 `runtimeTargets: { windows, wsl }` 字段 | 解耦“应用维度 (apps)”与“平台环境维度”，列表与编辑页直接切换 |
-| **Codex WSL 配置** | 独立保存 WSL `config.toml`，留空时投影 Windows 配置的白名单 | 不复制 Windows runtime、插件市场、通知和沙箱状态 |
+| **供应商 WSL 配置** | Claude、Codex、Pi 按供应商独立启用，分别保存 JSON / TOML / JSON | 避免 Windows 与 WSL 路径、运行时字段互相污染 |
 | **MCP 命令包装** | Windows 补齐/保留 `cmd /c`，WSL 仅脱壳受控 Node 命令 | 针对 `npx`, `npm`, `yarn`, `pnpm`, `node`, `bun`, `deno` 处理，保留非 Node 命令的原意 |
 | **Skills 同步** | 镜像到 WSL 时**强制文件递归复制** | 跨 Windows NTFS 与 WSL 9P/ext4 文件系统的符号链接不稳定，文件复制最可靠 |
 | **Prompts 同步** | 分别写入 `CLAUDE.md` 与 `AGENTS.md` | 两边均可直接被对应 CLI 识别生效 |
@@ -63,16 +63,21 @@ CC Switch 在双模式场景下存在两项核心诉求：
 在 `AppSettings` 及前端 `Settings` 中新增：
 - `claudeWslMirrorDir`: 字符串，如 `\\wsl.localhost\Ubuntu\home\dev\.claude`
 - `codexWslMirrorDir`: 字符串，如 `\\wsl.localhost\Ubuntu\home\dev\.codex`
+- `piWslMirrorDir`: 字符串，如 `\\wsl.localhost\Ubuntu\home\dev\.pi\agent`
 
 设置界面在对应目录项旁提供输入框与 WSL 占位示例，支持保存时自动创建目标目录。
 
-### 3.3 Codex WSL 独立配置
+### 3.3 供应商级 WSL 独立配置
 
-Codex Provider 的 `settingsConfig.wslConfig` 保存 WSL 专用 TOML。配置了 Codex WSL 镜像目录后，Provider 编辑页显示独立编辑器；留空时，系统从 Windows `config.toml` 只投影 `model`、`model_provider`、`model_providers`、`features` 和上下文/推理相关字段。
+每个 Claude、Codex、Pi Provider 保存 `wslEnabled` 与 `wslConfig`。开启前要求对应镜像目录已配置；关闭时不写 WSL，并保留独立配置内容。Claude/Pi 使用 JSON，Codex 使用 TOML。
 
-`notify`、`desktop`、`windows`、`marketplaces`、`plugins` 与整个 `[mcp_servers]` 都不会写入 WSL。`model_catalog_json` 会保留，并在存在模型映射时同步生成 WSL 侧 catalog 文件。WSL MCP 仅由 `runtimeTargets.wsl` 重新投影。
+### 3.4 Codex WSL 投影约束
 
-### 3.4 MCP 运行环境自适应
+Codex Provider 的 `settingsConfig.wslConfig` 保存 WSL 专用 TOML。启用后只使用这份独立配置，不再从 Windows `config.toml` 回退生成。
+
+写入前会过滤 `notify`、`desktop`、`windows`、`marketplaces`、`plugins` 与整个 `[mcp_servers]`。`model_catalog_json` 会保留，并在引用 `cc-switch-model-catalog.json` 时同步模型目录。WSL MCP 仅由 `runtimeTargets.wsl` 重新投影。
+
+### 3.5 MCP 运行环境自适应
 统一 MCP 数据模型扩展：
 ```typescript
 interface McpRuntimeTargets {
@@ -91,6 +96,6 @@ interface McpServer {
   - 两侧相互独立：若某环境未启用该 MCP，则从对应配置文件中移除该条目。
   - 至少保留一个运行环境目标，禁止将所有目标同时置空。
 
-### 3.4 异常处理与容错原则
+### 3.6 异常处理与容错原则
 - WSL 镜像写入采用独立异常捕获，若网络共享未就绪、路径不存在或权限不足，输出 `log::warn!`，主操作照常向前端返回成功。
 - WSL 侧文件的任何外部手工修改不进行反向同步与回填，下次 CC Switch 执行写入时将覆盖相关管理文件。

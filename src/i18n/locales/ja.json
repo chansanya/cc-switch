@@ -181,7 +181,13 @@
     },
     "duplicateLiveIdsLoadFailed": "設定内のプロバイダー識別子を読み込めませんでした。設定を修正してから再度お試しください",
     "wslIndependentConfig": "Win / WSL 個別設定",
-    "wslIndependentConfigHint": "このプロバイダーは Windows と WSL の config.toml を個別に保存し、実行環境ごとのディレクトリへ書き込みます。"
+    "wslIndependentConfigHint": "このプロバイダーは Windows と WSL の設定を個別に保存し、実行環境ごとのディレクトリへ書き込みます。",
+    "wslConfigToggle": "WSL 個別設定を有効化",
+    "wslConfigToggleDescription": "このプロバイダーの Windows メイン設定と WSL 個別設定を分けて保存します。",
+    "wslConfigPathRequired": "先に設定画面で対応する WSL ミラーディレクトリを設定してください。",
+    "wslConfigEditor": "WSL 個別設定（{{format}}）",
+    "wslConfigPlaceholder": "WSL で使用する {{format}} 設定を入力",
+    "wslConfigObjectRequired": "WSL 設定は有効な JSON オブジェクトである必要があります。"
   },
   "claudeCode": {
     "needsRouting": "ルーティングが必要",
@@ -907,7 +913,9 @@
     "claudeWslMirrorDir": "Claude WSL ミラーディレクトリ",
     "codexWslMirrorDir": "Codex WSL ミラーディレクトリ",
     "wslMirrorPlaceholderClaude": "例: \\\\wsl.localhost\\Ubuntu\\home\\user\\.claude",
-    "wslMirrorPlaceholderCodex": "例: \\\\wsl.localhost\\Ubuntu\\home\\user\\.codex"
+    "wslMirrorPlaceholderCodex": "例: \\\\wsl.localhost\\Ubuntu\\home\\user\\.codex",
+    "piWslMirrorDir": "Pi WSL ミラーディレクトリ",
+    "wslMirrorPlaceholderPi": "例：\\\\wsl.localhost\\Ubuntu\\home\\dev\\.pi\\agent"
   },
   "apps": {
     "claude": "Claude",

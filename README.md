@@ -20,8 +20,8 @@
 
 - **Claude Code**：供应商、Prompts、Skills、MCP 与配置目录管理。
 - **Codex**：供应商、模型映射、Prompts、Skills、MCP，以及 Windows / WSL 双配置。
-- **Pi**：供应商、Prompts 与 Skills 管理。
-- **Windows → WSL 单向镜像**：Windows 保持主配置，WSL 使用独立目录与独立 Codex `config.toml`。
+- **Pi**：供应商、Prompts、Skills，以及可选的 WSL 独立 Provider 配置。
+- **Windows → WSL 单向镜像**：Windows 保持主配置，WSL 使用独立目录与供应商级独立配置。
 
 ## 保留功能
 
@@ -33,7 +33,7 @@
 
 ### Windows / WSL 双模式
 
-在设置中为 Claude Code 或 Codex 配置 WSL UNC 目录，例如：
+在设置中为 Claude Code、Codex 或 Pi 配置 WSL UNC 目录，例如：
 
 ```text
 \\wsl.localhost\Ubuntu\home\dev\.codex
@@ -42,7 +42,7 @@
 同步规则：
 
 - Windows 是主配置，不从 WSL 反向回填。
-- Codex Provider 可分别编辑 Windows 和 WSL 的 `config.toml`。
+- Claude、Codex、Pi 的每个供应商可单独开启 WSL 独立配置；Codex 分别编辑 Windows / WSL `config.toml`。
 - WSL 自动过滤 `notify`、`desktop`、`windows`、`marketplaces`、`plugins` 等 Windows 专属配置。
 - `model_catalog_json` 与模型目录按模型映射同步。
 - MCP 通过 `Windows / WSL` 运行环境标记决定写入目标；WSL 仅对受控 Node 命令移除 `cmd /c`，不转换文件路径。

@@ -78,7 +78,7 @@ import { CommonConfigEditor } from "./CommonConfigEditor";
 import GeminiConfigEditor from "./GeminiConfigEditor";
 import JsonEditor from "@/components/JsonEditor";
 import { Label } from "@/components/ui/label";
-import { CodexWslConfigEditor } from "./CodexWslConfigEditor";
+import { ProviderWslConfigEditor } from "./ProviderWslConfigEditor";
 import { ProviderPresetSelector } from "./ProviderPresetSelector";
 import { BasicFormFields } from "./BasicFormFields";
 import { ClaudeFormFields } from "./ClaudeFormFields";
@@ -300,6 +300,7 @@ function ProviderFormFull({
   onManageUniversalProviders,
   onManageAuthAccounts,
   onSubmittingChange,
+  onSubmitReadyChange,
   initialData,
   showButtons = true,
   isProxyTakeover = false,
@@ -444,7 +445,17 @@ function ProviderFormFull({
       websiteUrl: initialData?.websiteUrl ?? "",
       notes: initialData?.notes ?? "",
       settingsConfig: initialData?.settingsConfig
-        ? JSON.stringify(initialData.settingsConfig, null, 2)
+        ? JSON.stringify(
+            Object.fromEntries(
+              Object.entries(initialData.settingsConfig).filter(([key]) =>
+                appId === "claude" || appId === "codex"
+                  ? key !== "wslEnabled" && key !== "wslConfig"
+                  : true,
+              ),
+            ),
+            null,
+            2,
+          )
         : appId === "codex"
           ? CODEX_DEFAULT_CONFIG
           : appId === "gemini"
@@ -698,11 +709,59 @@ function ProviderFormFull({
 
   const { configError: codexConfigError, debouncedValidate } =
     useCodexTomlValidation();
-  const initialCodexWslConfig = initialData?.settingsConfig?.wslConfig;
-  const [codexWslConfig, setCodexWslConfig] = useState(
-    typeof initialCodexWslConfig === "string" ? initialCodexWslConfig : "",
+  const initialProviderWslConfig = initialData?.settingsConfig?.wslConfig;
+  const hasLegacyWslConfig =
+    (typeof initialProviderWslConfig === "string" &&
+      initialProviderWslConfig.trim().length > 0) ||
+    (initialProviderWslConfig != null &&
+      typeof initialProviderWslConfig === "object" &&
+      !Array.isArray(initialProviderWslConfig) &&
+      Object.keys(initialProviderWslConfig).length > 0);
+  const [wslEnabled, setWslEnabled] = useState(
+    initialData?.settingsConfig?.wslEnabled === true ||
+      (initialData?.settingsConfig?.wslEnabled === undefined &&
+        hasLegacyWslConfig),
   );
-  const [codexWslConfigError, setCodexWslConfigError] = useState("");
+  const [providerWslConfig, setProviderWslConfig] = useState(() =>
+    typeof initialProviderWslConfig === "string"
+      ? initialProviderWslConfig
+      : initialProviderWslConfig != null &&
+          typeof initialProviderWslConfig === "object" &&
+          !Array.isArray(initialProviderWslConfig)
+        ? JSON.stringify(initialProviderWslConfig, null, 2)
+        : "",
+  );
+  const [providerWslConfigError, setProviderWslConfigError] = useState("");
+  const wslMirrorDir =
+    appId === "claude"
+      ? settingsData?.claudeWslMirrorDir
+      : appId === "codex"
+        ? settingsData?.codexWslMirrorDir
+        : undefined;
+  const isWslPathConfigured = Boolean(wslMirrorDir?.trim());
+
+  const isWslSubmitReady = !wslEnabled || isWslPathConfigured;
+
+  useEffect(() => {
+    onSubmitReadyChange?.(isWslSubmitReady);
+  }, [isWslSubmitReady, onSubmitReadyChange]);
+
+  const handleWslEnabledChange = useCallback(
+    (enabled: boolean) => {
+      if (enabled && !isWslPathConfigured) {
+        toast.error(t("provider.wslConfigPathRequired"));
+        return;
+      }
+      if (enabled && !providerWslConfig.trim()) {
+        setProviderWslConfig(
+          appId === "codex" ? codexConfig : form.getValues("settingsConfig"),
+        );
+      }
+      setProviderWslConfigError("");
+      setWslEnabled(enabled);
+    },
+    [appId, codexConfig, form, isWslPathConfigured, providerWslConfig, t],
+  );
 
   const handleCodexConfigChange = useCallback(
     (value: string) => {
@@ -1121,15 +1180,37 @@ function ProviderFormFull({
     (appId === "claude" || appId === "codex") && category !== "official";
 
   const handleSubmit = async (values: ProviderFormData) => {
-    if (appId === "codex" && codexWslConfig.trim()) {
-      const error = validateToml(codexWslConfig);
-      if (error) {
-        setCodexWslConfigError(error);
-        toast.error(t("codexConfig.wslConfigTomlInvalid"));
+    if ((appId === "claude" || appId === "codex") && wslEnabled) {
+      if (!isWslPathConfigured) {
+        setProviderWslConfigError(t("provider.wslConfigPathRequired"));
+        toast.error(t("provider.wslConfigPathRequired"));
         return;
       }
+      if (appId === "codex") {
+        const error = validateToml(providerWslConfig);
+        if (error) {
+          setProviderWslConfigError(error);
+          toast.error(t("codexConfig.wslConfigTomlInvalid"));
+          return;
+        }
+      } else {
+        try {
+          const parsed = JSON.parse(providerWslConfig);
+          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            throw new Error(t("provider.wslConfigObjectRequired"));
+          }
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : t("provider.wslConfigObjectRequired");
+          setProviderWslConfigError(message);
+          toast.error(t("provider.wslConfigObjectRequired"));
+          return;
+        }
+      }
     }
-    setCodexWslConfigError("");
+    setProviderWslConfigError("");
 
     const overridesResult = shouldApplyLocalProxyRequestOverrides
       ? buildLocalProxyRequestOverrides(
@@ -1552,14 +1633,16 @@ function ProviderFormFull({
         const configObj = {
           auth: authJson,
           config: normalizedCodexConfig,
+          wslEnabled,
         } as {
           auth: unknown;
           config: string;
           modelCatalog?: { models: CodexCatalogModel[] };
+          wslEnabled: boolean;
           wslConfig?: string;
         };
-        if (codexWslConfig.trim()) {
-          configObj.wslConfig = codexWslConfig.trim();
+        if (providerWslConfig.trim()) {
+          configObj.wslConfig = providerWslConfig.trim();
         }
         if (normalizedCatalogModels.length > 0) {
           configObj.modelCatalog = { models: normalizedCatalogModels };
@@ -1606,6 +1689,19 @@ function ProviderFormFull({
       settingsConfig = JSON.stringify(omoConfig);
     } else {
       settingsConfig = values.settingsConfig.trim();
+    }
+
+    if (appId === "claude") {
+      try {
+        const configObj = JSON.parse(settingsConfig) as Record<string, unknown>;
+        configObj.wslEnabled = wslEnabled;
+        if (providerWslConfig.trim()) {
+          configObj.wslConfig = JSON.parse(providerWslConfig);
+        }
+        settingsConfig = JSON.stringify(configObj);
+      } catch {
+        // Main config validation owns the error path; keep its original text.
+      }
     }
 
     const payload: ProviderFormValues = {
@@ -2681,16 +2777,18 @@ function ProviderFormFull({
                 onExtract={handleCodexExtract}
                 isExtracting={isCodexExtracting}
               />
-              {settingsData?.codexWslMirrorDir ? (
-                <CodexWslConfigEditor
-                  value={codexWslConfig}
-                  error={codexWslConfigError}
-                  onChange={(value) => {
-                    setCodexWslConfig(value);
-                    setCodexWslConfigError("");
-                  }}
-                />
-              ) : null}
+              <ProviderWslConfigEditor
+                enabled={wslEnabled}
+                pathConfigured={isWslPathConfigured}
+                format="toml"
+                value={providerWslConfig}
+                error={providerWslConfigError}
+                onEnabledChange={handleWslEnabledChange}
+                onChange={(value) => {
+                  setProviderWslConfig(value);
+                  setProviderWslConfigError("");
+                }}
+              />
               {settingsConfigErrorField}
             </>
           ) : appId === "gemini" ? (
@@ -2810,6 +2908,20 @@ function ProviderFormFull({
                 onExtract={handleClaudeExtract}
                 isExtracting={isClaudeExtracting}
               />
+              {appId === "claude" ? (
+                <ProviderWslConfigEditor
+                  enabled={wslEnabled}
+                  pathConfigured={isWslPathConfigured}
+                  format="json"
+                  value={providerWslConfig}
+                  error={providerWslConfigError}
+                  onEnabledChange={handleWslEnabledChange}
+                  onChange={(value) => {
+                    setProviderWslConfig(value);
+                    setProviderWslConfigError("");
+                  }}
+                />
+              ) : null}
               {settingsConfigErrorField}
             </>
           )}
@@ -2831,7 +2943,9 @@ function ProviderFormFull({
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || isConfirmSubmitting}
+                disabled={
+                  isSubmitting || isConfirmSubmitting || !isWslSubmitReady
+                }
               >
                 {submitLabel}
               </Button>

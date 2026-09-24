@@ -173,6 +173,8 @@ pub(crate) fn sanitize_claude_settings_for_live(settings: &Value) -> Value {
         obj.remove("apiFormat");
         obj.remove("openrouter_compat_mode");
         obj.remove("openrouterCompatMode");
+        obj.remove(crate::wsl_mirror::WSL_ENABLED_KEY);
+        obj.remove(crate::wsl_mirror::WSL_CONFIG_KEY);
     }
     v
 }
@@ -1063,6 +1065,7 @@ fn restore_live_settings_for_provider_backfill(
         let mut settings = live_settings;
         strip_injected_codex_oauth_context_defaults(&mut settings, provider);
         strip_injected_kimi_for_coding_context_defaults(&mut settings, provider);
+        crate::wsl_mirror::preserve_provider_wsl_fields(&provider.settings_config, &mut settings);
         return settings;
     }
     if matches!(app_type, AppType::GrokBuild) {
@@ -1135,6 +1138,7 @@ fn restore_live_settings_for_provider_backfill(
         }
     }
 
+    crate::wsl_mirror::preserve_provider_wsl_fields(&provider.settings_config, &mut settings);
     settings
 }
 
@@ -1289,7 +1293,7 @@ pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Re
             let path = get_claude_settings_path();
             let settings = sanitize_claude_settings_for_live(&provider.settings_config);
             write_json_file(&path, &settings)?;
-            crate::wsl_mirror::mirror_claude_live_if_enabled(&settings);
+            crate::wsl_mirror::mirror_claude_provider_if_enabled(provider);
         }
         AppType::ClaudeDesktop => {
             return Err(AppError::localized(

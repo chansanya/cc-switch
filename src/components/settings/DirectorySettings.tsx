@@ -19,7 +19,11 @@ interface DirectorySettingsProps {
   piDir?: string;
   claudeWslMirrorDir?: string;
   codexWslMirrorDir?: string;
-  onWslMirrorDirChange?: (app: "claude" | "codex", value?: string) => void;
+  piWslMirrorDir?: string;
+  onWslMirrorDirChange?: (
+    app: "claude" | "codex" | "pi",
+    value?: string,
+  ) => void;
   onDirectoryChange: (app: DirectoryAppId, value?: string) => void;
   onBrowseDirectory: (app: DirectoryAppId) => Promise<void>;
   onResetDirectory: (app: DirectoryAppId) => Promise<void>;
@@ -36,6 +40,7 @@ export function DirectorySettings({
   piDir,
   claudeWslMirrorDir,
   codexWslMirrorDir,
+  piWslMirrorDir,
   onWslMirrorDirChange,
   onDirectoryChange,
   onBrowseDirectory,
@@ -141,16 +146,29 @@ export function DirectorySettings({
           </div>
         </div>
 
-        <DirectoryInput
-          label={t("settings.piConfigDir")}
-          description={undefined}
-          value={piDir}
-          resolvedValue={resolvedDirs.pi}
-          placeholder={t("settings.browsePlaceholderPi")}
-          onChange={(val) => onDirectoryChange("pi", val)}
-          onBrowse={() => onBrowseDirectory("pi")}
-          onReset={() => onResetDirectory("pi")}
-        />
+        <div className="space-y-2">
+          <DirectoryInput
+            label={t("settings.piConfigDir")}
+            description={undefined}
+            value={piDir}
+            resolvedValue={resolvedDirs.pi}
+            placeholder={t("settings.browsePlaceholderPi")}
+            onChange={(val) => onDirectoryChange("pi", val)}
+            onBrowse={() => onBrowseDirectory("pi")}
+            onReset={() => onResetDirectory("pi")}
+          />
+          <div className="pl-3 border-l-2 border-border/40 space-y-1.5">
+            <span className="text-xs text-muted-foreground">
+              {t("settings.piWslMirrorDir")}
+            </span>
+            <Input
+              value={piWslMirrorDir ?? ""}
+              placeholder={t("settings.wslMirrorPlaceholderPi")}
+              className="text-xs"
+              onChange={(e) => onWslMirrorDirChange?.("pi", e.target.value)}
+            />
+          </div>
+        </div>
       </section>
     </div>
   );

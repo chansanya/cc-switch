@@ -443,6 +443,8 @@ pub struct AppSettings {
     pub claude_wsl_mirror_dir: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codex_wsl_mirror_dir: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pi_wsl_mirror_dir: Option<String>,
 
     // ===== 当前供应商 ID（设备级）=====
     /// 当前 Claude 供应商 ID（本地存储，优先于数据库 is_current）
@@ -562,6 +564,7 @@ impl Default for AppSettings {
             pi_config_dir: None,
             claude_wsl_mirror_dir: None,
             codex_wsl_mirror_dir: None,
+            pi_wsl_mirror_dir: None,
             current_provider_claude: None,
             current_provider_claude_desktop: None,
             current_provider_codex: None,
@@ -659,6 +662,13 @@ impl AppSettings {
 
         self.codex_wsl_mirror_dir = self
             .codex_wsl_mirror_dir
+            .as_ref()
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string());
+
+        self.pi_wsl_mirror_dir = self
+            .pi_wsl_mirror_dir
             .as_ref()
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
@@ -1010,6 +1020,14 @@ pub fn get_codex_wsl_mirror_dir() -> Option<PathBuf> {
     let settings = settings_store().read().ok()?;
     settings
         .codex_wsl_mirror_dir
+        .as_ref()
+        .map(|p| resolve_override_path(p))
+}
+
+pub fn get_pi_wsl_mirror_dir() -> Option<PathBuf> {
+    let settings = settings_store().read().ok()?;
+    settings
+        .pi_wsl_mirror_dir
         .as_ref()
         .map(|p| resolve_override_path(p))
 }

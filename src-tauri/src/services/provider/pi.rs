@@ -8,6 +8,10 @@ use serde_json::Value;
 
 const PI_APP: &str = "pi";
 
+fn native_config(provider: &Provider) -> Value {
+    crate::wsl_mirror::strip_provider_wsl_fields(&provider.settings_config)
+}
+
 pub(super) fn list(state: &AppState) -> Result<IndexMap<String, Provider>, AppError> {
     let _guard = futures::executor::block_on(state.proxy_service.lock_switch_for_app(PI_APP));
     match crate::pi_config::read_pi_native_providers() {
@@ -60,18 +64,18 @@ pub(super) fn add(
         )));
     }
 
+    let native_config = native_config(&provider);
     let native_inserted = if add_to_live {
-        crate::pi_config::insert_pi_provider(&provider.id, &provider.settings_config)?
+        crate::pi_config::insert_pi_provider(&provider.id, &native_config)?
     } else {
         false
     };
 
     if let Err(error) = state.db.save_provider(app_type.as_str(), &provider) {
         if native_inserted {
-            if let Err(rollback) = crate::pi_config::remove_pi_provider_if_matches(
-                &provider.id,
-                &provider.settings_config,
-            ) {
+            if let Err(rollback) =
+                crate::pi_config::remove_pi_provider_if_matches(&provider.id, &native_config)
+            {
                 return Err(AppError::Config(format!(
                     "failed to save Pi provider: {error}; native rollback failed: {rollback}"
                 )));
@@ -79,6 +83,7 @@ pub(super) fn add(
         }
         return Err(error);
     }
+    crate::wsl_mirror::mirror_pi_provider_if_enabled(&provider);
     Ok(true)
 }
 
@@ -129,15 +134,14 @@ pub(super) fn update(
     ProviderService::validate_provider_settings(&app_type, &provider)?;
     ProviderService::normalize_usage_script_credential_overrides(&app_type, &mut provider);
 
+    let native_config = native_config(&provider);
     let previous_native =
-        crate::pi_config::replace_pi_provider_if_present(&original_id, &provider.settings_config)?;
+        crate::pi_config::replace_pi_provider_if_present(&original_id, &native_config)?;
     if let Err(error) = state.db.save_provider(app_type.as_str(), &provider) {
         if let Some(previous_native) = previous_native.as_ref() {
-            if let Err(rollback) = crate::pi_config::replace_pi_provider(
-                &original_id,
-                &provider.settings_config,
-                previous_native,
-            ) {
+            if let Err(rollback) =
+                crate::pi_config::replace_pi_provider(&original_id, &native_config, previous_native)
+            {
                 return Err(AppError::Config(format!(
                     "failed to save Pi provider: {error}; native rollback failed: {rollback}"
                 )));
@@ -145,6 +149,7 @@ pub(super) fn update(
         }
         return Err(error);
     }
+    crate::wsl_mirror::mirror_pi_provider_if_enabled(&provider);
     Ok(true)
 }
 
@@ -152,7 +157,7 @@ pub(super) fn delete(state: &AppState, id: &str) -> Result<(), AppError> {
     let app_type = AppType::Pi;
     let _guard =
         futures::executor::block_on(state.proxy_service.lock_switch_for_app(app_type.as_str()));
-    let Some(_) = state.db.get_provider_by_id(id, app_type.as_str())? else {
+    let Some(provider) = state.db.get_provider_by_id(id, app_type.as_str())? else {
         return Ok(());
     };
     // Delete is intentionally keyed by provider ID. Once the user confirms
@@ -170,6 +175,7 @@ pub(super) fn delete(state: &AppState, id: &str) -> Result<(), AppError> {
         }
         return Err(error);
     }
+    crate::wsl_mirror::remove_pi_provider_mirror_if_enabled(&provider);
     Ok(())
 }
 
@@ -210,11 +216,13 @@ pub(super) fn enable(state: &AppState, id: &str) -> Result<SwitchResult, AppErro
         let mut synced = provider;
         merge_native_config(&mut synced, native);
         state.db.save_provider(app_type.as_str(), &synced)?;
+        crate::wsl_mirror::mirror_pi_provider_if_enabled(&synced);
         return Ok(SwitchResult::default());
     }
 
     ProviderService::validate_provider_settings(&app_type, &provider)?;
-    crate::pi_config::insert_pi_provider(id, &provider.settings_config)?;
+    crate::pi_config::insert_pi_provider(id, &native_config(&provider))?;
+    crate::wsl_mirror::mirror_pi_provider_if_enabled(&provider);
     Ok(SwitchResult::default())
 }
 
@@ -249,10 +257,11 @@ fn sync_native_locked(
     Ok(changed)
 }
 
-fn merge_native_config(provider: &mut Provider, config: Value) {
+fn merge_native_config(provider: &mut Provider, mut config: Value) {
     if let Some(name) = native_provider_name(&config) {
         provider.name = name.to_string();
     }
+    crate::wsl_mirror::preserve_provider_wsl_fields(&provider.settings_config, &mut config);
     provider.settings_config = config;
 }
 

@@ -66,6 +66,8 @@ import { useDarkMode } from "@/hooks/useDarkMode";
 import { providerSchema, type ProviderFormData } from "@/lib/schemas/provider";
 import type { ProviderCategory } from "@/types";
 import { translatePiProviderMutationError } from "@/utils/errorUtils";
+import { useSettingsQuery } from "@/lib/query";
+import { ProviderWslConfigEditor } from "./ProviderWslConfigEditor";
 
 const PI_API_FORMATS = [
   { value: "openai-completions", label: "OpenAI Chat Completions" },
@@ -83,7 +85,10 @@ const ROOT_CONTROLLED_KEYS = new Set([
   "headers",
   "compat",
   "models",
+  "wslEnabled",
+  "wslConfig",
 ]);
+const WSL_INTERNAL_KEYS = new Set(["wslEnabled", "wslConfig"]);
 const MODEL_CONTROLLED_KEYS = new Set([
   "id",
   "name",
@@ -492,7 +497,7 @@ export function PiProviderForm({
       JSON.stringify(
         isEdit
           ? {
-              ...initialConfig,
+              ...objectWithout(initialConfig, WSL_INTERNAL_KEYS),
               ...(Array.isArray(initialConfig.models)
                 ? { models: initialModels.map(modelPreview) }
                 : {}),
@@ -531,6 +536,38 @@ export function PiProviderForm({
     defaultValues: identityDefaults,
     mode: "onSubmit",
   });
+  const { data: settingsData } = useSettingsQuery();
+  const hasInitialWslConfig =
+    initialConfig.wslConfig != null &&
+    typeof initialConfig.wslConfig === "object" &&
+    !Array.isArray(initialConfig.wslConfig);
+  const initialWslConfig = asObject(initialConfig.wslConfig);
+  const [wslEnabled, setWslEnabled] = useState(
+    initialConfig.wslEnabled === true ||
+      (initialConfig.wslEnabled === undefined &&
+        Object.keys(initialWslConfig).length > 0),
+  );
+  const [wslConfigText, setWslConfigText] = useState(
+    hasInitialWslConfig ? JSON.stringify(initialWslConfig, null, 2) : "",
+  );
+  const [wslConfigError, setWslConfigError] = useState("");
+  const isWslPathConfigured = Boolean(settingsData?.piWslMirrorDir?.trim());
+
+  const handleWslEnabledChange = useCallback(
+    (enabled: boolean) => {
+      if (enabled && !isWslPathConfigured) {
+        toast.error(t("provider.wslConfigPathRequired"));
+        return;
+      }
+      if (enabled && !wslConfigText.trim()) {
+        const current = parseJsonObject(form.getValues("settingsConfig"));
+        setWslConfigText(JSON.stringify(current ?? {}, null, 2));
+      }
+      setWslConfigError("");
+      setWslEnabled(enabled);
+    },
+    [form, isWslPathConfigured, t, wslConfigText],
+  );
   const lastValidSettingsConfigRef = useRef<Record<string, unknown>>(
     parseJsonObject(initialSettingsConfigText) ?? {},
   );
@@ -538,7 +575,8 @@ export function PiProviderForm({
   const isSettingsConfigValid = parseJsonObject(settingsConfigText) !== null;
   const displayName = form.watch("name");
   const hasConfigurationSelection = isEdit || selectedPresetId !== null;
-  const isSubmitReady = hasConfigurationSelection;
+  const isSubmitReady =
+    hasConfigurationSelection && (!wslEnabled || isWslPathConfigured);
 
   const replaceModelsState = useCallback((nextModels: PiModelDraft[]) => {
     modelsRef.current = nextModels;
@@ -1073,6 +1111,19 @@ export function PiProviderForm({
           "#pi-settings-config",
         );
       }
+      if (wslEnabled) {
+        if (!isWslPathConfigured) {
+          setWslConfigError(t("provider.wslConfigPathRequired"));
+          throw new PiFormValidationError(t("provider.wslConfigPathRequired"));
+        }
+        if (!parseJsonObject(wslConfigText)) {
+          setWslConfigError(t("provider.wslConfigObjectRequired"));
+          throw new PiFormValidationError(
+            t("provider.wslConfigObjectRequired"),
+          );
+        }
+      }
+      setWslConfigError("");
       const trimmedName = identity.name.trim();
       const trimmedKey = providerKey.trim();
       if (!trimmedName) {
@@ -1225,7 +1276,7 @@ export function PiProviderForm({
         );
       }
 
-      const settingsConfig = buildPiSettingsConfig({
+      const settingsConfig: Record<string, unknown> = buildPiSettingsConfig({
         passthrough: providerPassthrough,
         nativeName: resolveNativeName(trimmedName),
         baseUrl,
@@ -1238,6 +1289,10 @@ export function PiProviderForm({
         models: normalizedModels,
         includeModels: includeModelsRef.current,
       });
+      settingsConfig.wslEnabled = wslEnabled;
+      if (wslConfigText.trim()) {
+        settingsConfig.wslConfig = parseJsonObject(wslConfigText) ?? {};
+      }
       const values: ProviderFormValues = {
         name: trimmedName,
         websiteUrl: identity.websiteUrl?.trim() ?? "",
@@ -2004,6 +2059,19 @@ export function PiProviderForm({
             )}
           />
         )}
+
+        <ProviderWslConfigEditor
+          enabled={wslEnabled}
+          pathConfigured={isWslPathConfigured}
+          format="json"
+          value={wslConfigText}
+          error={wslConfigError}
+          onEnabledChange={handleWslEnabledChange}
+          onChange={(value) => {
+            setWslConfigText(value);
+            setWslConfigError("");
+          }}
+        />
 
         {showButtons && (
           <div className="flex justify-end gap-2">

@@ -181,7 +181,13 @@
     },
     "duplicateLiveIdsLoadFailed": "读取配置中的供应商标识失败，请先修复配置后再试",
     "wslIndependentConfig": "Win / WSL 双配置",
-    "wslIndependentConfigHint": "该供应商分别保存 Windows 主配置和 WSL 独立 config.toml，切换时按运行环境写入对应目录。"
+    "wslIndependentConfigHint": "该供应商分别保存 Windows 主配置和 WSL 独立配置，切换时按运行环境写入对应目录。",
+    "wslConfigToggle": "启用 WSL 独立配置",
+    "wslConfigToggleDescription": "为该供应商分别保存 Windows 主配置和 WSL 独立配置。",
+    "wslConfigPathRequired": "请先在设置中配置对应的 WSL 镜像目录。",
+    "wslConfigEditor": "WSL 独立配置（{{format}}）",
+    "wslConfigPlaceholder": "填写 WSL 使用的 {{format}} 配置",
+    "wslConfigObjectRequired": "WSL 配置必须是有效的 JSON 对象。"
   },
   "claudeCode": {
     "needsRouting": "需要路由",
@@ -907,7 +913,9 @@
     "claudeWslMirrorDir": "Claude WSL 镜像目录",
     "codexWslMirrorDir": "Codex WSL 镜像目录",
     "wslMirrorPlaceholderClaude": "例如 \\\\wsl.localhost\\Ubuntu\\home\\user\\.claude",
-    "wslMirrorPlaceholderCodex": "例如 \\\\wsl.localhost\\Ubuntu\\home\\user\\.codex"
+    "wslMirrorPlaceholderCodex": "例如 \\\\wsl.localhost\\Ubuntu\\home\\user\\.codex",
+    "piWslMirrorDir": "Pi WSL 镜像目录",
+    "wslMirrorPlaceholderPi": "例如：\\\\wsl.localhost\\Ubuntu\\home\\dev\\.pi\\agent"
   },
   "apps": {
     "claude": "Claude",
