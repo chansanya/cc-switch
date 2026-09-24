@@ -310,6 +310,10 @@ export function ProviderCard({
   // apiFormat 被改动/缺省影响。此 badge 仅在 Codex 视图渲染，故加 appId 守卫。
   const codexNeedsRouting =
     appId === "codex" && providerNeedsRouting(appId, provider);
+  const hasCodexWslConfig =
+    appId === "codex" &&
+    typeof provider.settingsConfig?.wslConfig === "string" &&
+    provider.settingsConfig.wslConfig.trim().length > 0;
   // 获取用量数据以判断是否有多套餐
   // 累加模式应用：使用 isInConfig 代替 isCurrent
   const shouldAutoQuery = isAdditiveAppId(appId) ? isInConfig : isCurrent;
@@ -462,6 +466,19 @@ export function ProviderCard({
                   tone="info"
                   label={t("provider.needsRouting", {
                     defaultValue: "需要路由",
+                  })}
+                />
+              )}
+
+              {hasCodexWslConfig && (
+                <ProviderStatusBadge
+                  tone="success"
+                  label={t("provider.wslIndependentConfig", {
+                    defaultValue: "Win / WSL 双配置",
+                  })}
+                  title={t("provider.wslIndependentConfigHint", {
+                    defaultValue:
+                      "该供应商分别保存 Windows 主配置和 WSL 独立 config.toml，切换时按运行环境写入对应目录。",
                   })}
                 />
               )}

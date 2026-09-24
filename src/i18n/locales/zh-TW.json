@@ -179,7 +179,9 @@
         "apiKeyPlaceholder": "請輸入 Gemini API Key"
       }
     },
-    "duplicateLiveIdsLoadFailed": "讀取設定中的供應商識別碼失敗，請先修復設定後再試"
+    "duplicateLiveIdsLoadFailed": "讀取設定中的供應商識別碼失敗，請先修復設定後再試",
+    "wslIndependentConfig": "Win / WSL 雙設定",
+    "wslIndependentConfigHint": "此供應商分別儲存 Windows 主要設定與 WSL 獨立 config.toml，切換時依運行環境寫入對應目錄。"
   },
   "claudeCode": {
     "needsRouting": "需要路由",

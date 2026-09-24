@@ -179,7 +179,9 @@
         "apiKeyPlaceholder": "Enter Gemini API Key"
       }
     },
-    "duplicateLiveIdsLoadFailed": "Failed to read provider identifiers from config, please fix the config and try again"
+    "duplicateLiveIdsLoadFailed": "Failed to read provider identifiers from config, please fix the config and try again",
+    "wslIndependentConfig": "Win / WSL configs",
+    "wslIndependentConfigHint": "This provider stores separate Windows and WSL config.toml content and writes each configuration to its matching runtime directory."
   },
   "claudeCode": {
     "needsRouting": "Needs Routing",
