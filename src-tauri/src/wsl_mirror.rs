@@ -238,9 +238,13 @@ fn mirror_codex_model_catalog(wsl_dir: &Path, config: &str) {
     let references_catalog = config
         .parse::<DocumentMut>()
         .ok()
-        .and_then(|doc| doc.get("model_catalog_json").and_then(|item| item.as_str()))
+        .and_then(|doc| {
+            doc.get("model_catalog_json")
+                .and_then(|item| item.as_str())
+                .map(str::to_string)
+        })
         .map(|path| {
-            Path::new(path).file_name().and_then(|name| name.to_str())
+            Path::new(&path).file_name().and_then(|name| name.to_str())
                 == Some(crate::codex_config::CC_SWITCH_CODEX_MODEL_CATALOG_FILENAME)
         })
         .unwrap_or(false);
