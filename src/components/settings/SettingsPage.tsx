@@ -72,7 +72,6 @@ export function SettingsPage({
     settings,
     isLoading,
     isSaving,
-    isPortable,
     appConfigDir,
     resolvedDirs,
     updateSettings,
