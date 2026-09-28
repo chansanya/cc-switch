@@ -71,11 +71,18 @@ pub fn import_from_codex(config: &mut MultiAppConfig) -> Result<usize, AppError>
                 continue;
             };
 
-            // type 缺省为 stdio
+            // Codex 官方配置不需要 type：command 表示 stdio，url 表示 HTTP。
+            // 仍兼容历史配置中的显式 type。
             let typ = entry_tbl
                 .get("type")
                 .and_then(|v| v.as_str())
-                .unwrap_or("stdio");
+                .unwrap_or_else(|| {
+                    if entry_tbl.contains_key("url") {
+                        "http"
+                    } else {
+                        "stdio"
+                    }
+                });
 
             // 构建 JSON 规范
             let mut spec = serde_json::Map::new();
@@ -624,7 +631,7 @@ fn json_value_to_toml_item(value: &Value, field_name: &str) -> Option<toml_edit:
 /// Helper: 将 JSON MCP 服务器规范转换为 toml_edit::Table
 ///
 /// 策略：
-/// 1. 核心字段（type, command, args, url, headers, env, cwd）使用强类型处理
+/// 1. 核心字段（command, args, url, headers, env, cwd）使用强类型处理
 /// 2. 扩展字段（timeout、retry 等）通过白名单列表自动转换
 /// 3. 其他未知字段使用通用转换器尝试转换
 pub(super) fn json_server_to_toml_table(spec: &Value) -> Result<toml_edit::Table, AppError> {
@@ -632,7 +639,9 @@ pub(super) fn json_server_to_toml_table(spec: &Value) -> Result<toml_edit::Table
 
     let mut t = Table::new();
     let typ = spec.get("type").and_then(|v| v.as_str()).unwrap_or("stdio");
-    t["type"] = toml_edit::value(typ);
+
+    // Codex 根据 command / url 推断传输方式；显式 type 会被当作未知配置。
+    // type 仅保留在 CC Switch 的统一 MCP 数据中，不投影到 config.toml。
 
     // 定义核心字段（已在下方处理，跳过通用转换）
     let core_fields = match typ {
@@ -832,6 +841,20 @@ mod tests {
         remove_mcp_server_from_doc(&mut doc, "whatever");
 
         assert_eq!(doc.to_string(), "mcp_servers = 42\n");
+    }
+
+    #[test]
+    fn codex_projection_omits_internal_transport_type() {
+        for spec in [
+            json!({ "type": "stdio", "command": "npx" }),
+            json!({ "type": "http", "url": "https://mcp.example.com" }),
+        ] {
+            let table = json_server_to_toml_table(&spec).expect("convert MCP server");
+            assert!(
+                table.get("type").is_none(),
+                "Codex config.toml must infer transport from command or url"
+            );
+        }
     }
 
     #[test]
